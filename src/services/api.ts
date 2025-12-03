@@ -69,11 +69,10 @@ export const fetchCampaignData = async (): Promise<ProcessedCampaignData[]> => {
 
     responses.forEach(response => {
       if (response.data.success && response.data.data.values.length > 1) {
-        const headers = response.data.data.values[0];
         const rows = response.data.data.values.slice(1);
 
         rows.forEach(row => {
-          if (row.length >= headers.length) {
+          if (row.length >= 18) {
             const dataRow: ProcessedCampaignData = {
               date: parseDate(row[0]),
               campaignName: row[1] || '',
@@ -117,7 +116,6 @@ export const fetchSearchTermsData = async (): Promise<ProcessedSearchData[]> => 
 
     responses.forEach(response => {
       if (response.data.success && response.data.data.values.length > 1) {
-        const headers = response.data.data.values[0];
         const rows = response.data.data.values.slice(1);
 
         rows.forEach(row => {

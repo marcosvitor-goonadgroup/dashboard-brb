@@ -40,7 +40,7 @@ const CreativePerformance = ({ data, selectedCampaign }: CreativePerformanceProp
   const itemsPerPage = 5;
 
   // Extract unique values for filters
-  const { campanhas, veiculos, tiposCompra } = useMemo(() => {
+  const { veiculos, tiposCompra } = useMemo(() => {
     const campanhasSet = new Set<string>();
     const veiculosSet = new Set<string>();
     const tiposCompraSet = new Set<string>();

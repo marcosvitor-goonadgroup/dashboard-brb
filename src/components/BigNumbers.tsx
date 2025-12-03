@@ -60,7 +60,7 @@ const BigNumbers = ({
   const showComparison = hasActiveFilters();
 
   // Helper para calcular comparação com período anterior
-  const getComparisonData = (currentValue: number, metric: keyof CampaignMetrics) => {
+  const getComparisonData = (_currentValue: number, metric: keyof CampaignMetrics) => {
     if (comparisonMode === 'previous' && previousPeriodMetrics) {
       const previousValue = previousPeriodMetrics[metric] as number;
       return {

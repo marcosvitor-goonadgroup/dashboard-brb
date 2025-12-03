@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { ProcessedCampaignData, Filters, CampaignSummary, CampaignMetrics, PricingTableRow } from '../types/campaign';
+import { ProcessedCampaignData, Filters, CampaignSummary, CampaignMetrics } from '../types/campaign';
 import { fetchCampaignData, fetchPricingTable } from '../services/api';
 import { calculateRealInvestment } from '../utils/investmentCalculator';
 import { subDays, isAfter } from 'date-fns';
@@ -39,7 +39,6 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
   const [filteredData, setFilteredData] = useState<ProcessedCampaignData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pricingTable, setPricingTable] = useState<PricingTableRow[]>([]);
   const [filters, setFilters] = useState<Filters>({
     dateRange: { start: null, end: null },
     veiculo: [],
@@ -68,8 +67,8 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
         }));
 
         console.log('💰 Investimento real calculado para', dataWithRealInvestment.length, 'registros');
+        console.log('📊 Tabela de preços com', pricingData.length, 'registros carregada');
 
-        setPricingTable(pricingData);
         setData(dataWithRealInvestment);
         setFilteredData(dataWithRealInvestment);
         setError(null);
@@ -161,7 +160,7 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
 
       return {
         nome: campanhaNome,
-        status: isActive ? 'active' : 'inactive',
+        status: (isActive ? 'active' : 'inactive') as 'active' | 'inactive',
         lastActivity,
         metrics: calculateMetrics(campanhaData)
       };
