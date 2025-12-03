@@ -1,0 +1,233 @@
+import { CampaignMetrics, Filters } from '../types/campaign';
+import BenchmarkIndicator from './BenchmarkIndicator';
+
+interface BigNumbersProps {
+  metrics: CampaignMetrics;
+  filters?: Filters;
+  periodFilter?: '7days' | 'all';
+  generalBenchmarks?: {
+    ctr: number;
+    vtr: number;
+    taxaEngajamento: number;
+  };
+  comparisonMode?: 'benchmark' | 'previous';
+  previousPeriodMetrics?: CampaignMetrics | null;
+}
+
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) {
+    return `${(num / 1000000).toFixed(2)}M`;
+  }
+  if (num >= 1000) {
+    return `${(num / 1000).toFixed(1)}K`;
+  }
+  return num.toFixed(0);
+};
+
+const formatCurrency = (num: number): string => {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }).format(num);
+};
+
+const BigNumbers = ({
+  metrics,
+  filters,
+  periodFilter = 'all',
+  generalBenchmarks,
+  comparisonMode = 'benchmark',
+  previousPeriodMetrics
+}: BigNumbersProps) => {
+  // Detecta se há filtros ativos
+  const hasActiveFilters = () => {
+    if (!filters) return false;
+
+    // Verifica se o período não é "Todo o período" (all)
+    if (periodFilter === '7days') return true;
+
+    // Verifica se há filtros de data
+    if (filters.dateRange.start || filters.dateRange.end) return true;
+
+    // Verifica se há filtros de veículo, tipo de compra ou campanha
+    if (filters.veiculo.length > 0 || filters.tipoDeCompra.length > 0 || filters.campanha.length > 0) {
+      return true;
+    }
+
+    return false;
+  };
+
+  const showComparison = hasActiveFilters();
+
+  // Helper para calcular comparação com período anterior
+  const getComparisonData = (currentValue: number, metric: keyof CampaignMetrics) => {
+    if (comparisonMode === 'previous' && previousPeriodMetrics) {
+      const previousValue = previousPeriodMetrics[metric] as number;
+      return {
+        benchmark: previousValue,
+        hidePercentageDiff: false // Mostra a % de diferença quando comparando com período anterior
+      };
+    }
+    // Modo benchmark
+    return {
+      benchmark: metric === 'ctr' ? (generalBenchmarks?.ctr ?? 0) :
+                 metric === 'vtr' ? (generalBenchmarks?.vtr ?? 0) :
+                 metric === 'taxaEngajamento' ? (generalBenchmarks?.taxaEngajamento ?? 0) :
+                 0,
+      hidePercentageDiff: true // Oculta a % de diferença quando comparando com benchmark
+    };
+  };
+
+  const investimentoComparison = getComparisonData(metrics.investimento, 'investimento');
+  const impressoesComparison = getComparisonData(metrics.impressoes, 'impressoes');
+  const viewsComparison = getComparisonData(metrics.views, 'views');
+  const vtrComparison = getComparisonData(metrics.vtr, 'vtr');
+  const engajamentoComparison = getComparisonData(metrics.engajamento, 'engajamento');
+  const taxaEngajamentoComparison = getComparisonData(metrics.taxaEngajamento, 'taxaEngajamento');
+  const cliquesComparison = getComparisonData(metrics.cliques, 'cliques');
+  const ctrComparison = getComparisonData(metrics.ctr, 'ctr');
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      {/* Investimento - agora com comparação */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <p className="text-xs font-medium text-gray-500 mb-1">
+          Investimento
+        </p>
+        <p className="text-2xl font-bold text-blue-600">
+          {formatCurrency(metrics.investimento)}
+        </p>
+        {comparisonMode === 'previous' && showComparison && previousPeriodMetrics && (
+          <div className="mt-2 pt-2 border-t border-gray-100">
+            <BenchmarkIndicator
+              value={metrics.investimento}
+              benchmark={investimentoComparison.benchmark}
+              format="number"
+              showComparison={true}
+              hidePercentageDiff={investimentoComparison.hidePercentageDiff}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Impressões - agora com comparação */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <p className="text-xs font-medium text-gray-500 mb-1">
+          Impressões
+        </p>
+        <p className="text-2xl font-bold text-cyan-600">
+          {formatNumber(metrics.impressoes)}
+        </p>
+        {comparisonMode === 'previous' && showComparison && previousPeriodMetrics && (
+          <div className="mt-2 pt-2 border-t border-gray-100">
+            <BenchmarkIndicator
+              value={metrics.impressoes}
+              benchmark={impressoesComparison.benchmark}
+              format="number"
+              showComparison={true}
+              hidePercentageDiff={impressoesComparison.hidePercentageDiff}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Views com VTR */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <p className="text-xs font-medium text-gray-500 mb-1">
+          Views
+        </p>
+        <p className="text-2xl font-bold text-blue-500">
+          {formatNumber(metrics.views)}
+        </p>
+        {comparisonMode === 'previous' && showComparison && previousPeriodMetrics && (
+          <div className="mt-2 pt-2 border-t border-gray-100">
+            <p className="text-xs text-gray-500 mb-1">Views</p>
+            <BenchmarkIndicator
+              value={metrics.views}
+              benchmark={viewsComparison.benchmark}
+              format="number"
+              showComparison={true}
+              hidePercentageDiff={viewsComparison.hidePercentageDiff}
+            />
+          </div>
+        )}
+        <div className="mt-2 pt-2 border-t border-gray-100">
+          <p className="text-xs text-gray-500 mb-1">VTR</p>
+          <BenchmarkIndicator
+            value={metrics.vtr}
+            benchmark={vtrComparison.benchmark}
+            format="percentage"
+            showComparison={showComparison}
+            hidePercentageDiff={vtrComparison.hidePercentageDiff}
+          />
+        </div>
+      </div>
+
+      {/* Engajamento com Taxa de Engajamento */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <p className="text-xs font-medium text-gray-500 mb-1">
+          Engajamento
+        </p>
+        <p className="text-2xl font-bold text-purple-600">
+          {formatNumber(metrics.engajamento)}
+        </p>
+        {comparisonMode === 'previous' && showComparison && previousPeriodMetrics && (
+          <div className="mt-2 pt-2 border-t border-gray-100">
+            <p className="text-xs text-gray-500 mb-1">Engajamento</p>
+            <BenchmarkIndicator
+              value={metrics.engajamento}
+              benchmark={engajamentoComparison.benchmark}
+              format="number"
+              showComparison={true}
+              hidePercentageDiff={engajamentoComparison.hidePercentageDiff}
+            />
+          </div>
+        )}
+        <div className="mt-2 pt-2 border-t border-gray-100">
+          <p className="text-xs text-gray-500 mb-1">Taxa Engajamento</p>
+          <BenchmarkIndicator
+            value={metrics.taxaEngajamento}
+            benchmark={taxaEngajamentoComparison.benchmark}
+            format="percentage"
+            showComparison={showComparison}
+            hidePercentageDiff={taxaEngajamentoComparison.hidePercentageDiff}
+          />
+        </div>
+      </div>
+
+      {/* Cliques com CTR */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <p className="text-xs font-medium text-gray-500 mb-1">
+          Cliques
+        </p>
+        <p className="text-2xl font-bold text-indigo-600">
+          {formatNumber(metrics.cliques)}
+        </p>
+        {comparisonMode === 'previous' && showComparison && previousPeriodMetrics && (
+          <div className="mt-2 pt-2 border-t border-gray-100">
+            <p className="text-xs text-gray-500 mb-1">Cliques</p>
+            <BenchmarkIndicator
+              value={metrics.cliques}
+              benchmark={cliquesComparison.benchmark}
+              format="number"
+              showComparison={true}
+              hidePercentageDiff={cliquesComparison.hidePercentageDiff}
+            />
+          </div>
+        )}
+        <div className="mt-2 pt-2 border-t border-gray-100">
+          <p className="text-xs text-gray-500 mb-1">CTR</p>
+          <BenchmarkIndicator
+            value={metrics.ctr}
+            benchmark={ctrComparison.benchmark}
+            format="percentage"
+            showComparison={showComparison}
+            hidePercentageDiff={ctrComparison.hidePercentageDiff}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BigNumbers;
