@@ -106,22 +106,7 @@ const CreativePerformance = ({ data, selectedCampaign }: CreativePerformanceProp
         const ctr = item.impressoes > 0 ? (item.cliques / item.impressoes) * 100 : 0;
         const vtr = item.impressoes > 0 ? (item.videoCompletions / item.impressoes) * 100 : 0;
         const taxaEngajamento = item.impressoes > 0 ? (item.engajamento / item.impressoes) * 100 : 0;
-
-        // Log apenas dos primeiros 3 criativos para não poluir o console
-        if (Object.keys(aggregated).indexOf(item.name) < 3) {
-          console.log(`🎨 Criativo: ${item.name.substring(0, 30)}...`, {
-            veiculo: item.veiculo,
-            tipoDeCompra: item.tipoDeCompra,
-            impressoes: item.impressoes,
-            cliques: item.cliques,
-            videoCompletions: item.videoCompletions,
-            engajamento: item.engajamento,
-            ctr: `${ctr.toFixed(4)}%`,
-            vtr: `${vtr.toFixed(4)}%`,
-            taxaEngajamento: `${taxaEngajamento.toFixed(4)}%`
-          });
-        }
-
+       
         return {
           name: item.name,
           campanha: item.campanha,

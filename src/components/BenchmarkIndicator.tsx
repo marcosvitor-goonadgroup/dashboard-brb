@@ -12,15 +12,6 @@ const BenchmarkIndicator = ({ value, benchmark, format = 'percentage', className
   const difference = value - benchmark;
   const percentageDiff = benchmark > 0 ? (difference / benchmark) * 100 : 0;
 
-  // Debug logs
-  console.log('📊 BenchmarkIndicator Debug:', {
-    value: value.toFixed(4),
-    benchmark: benchmark.toFixed(4),
-    difference: difference.toFixed(4),
-    percentageDiff: percentageDiff.toFixed(2) + '%',
-    isAboveBenchmark,
-    format
-  });
 
   // Sempre usar 2 casas decimais para todas as métricas
   const formattedValue = format === 'percentage'

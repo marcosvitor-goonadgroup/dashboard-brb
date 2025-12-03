@@ -155,6 +155,7 @@ const DashboardContent = () => {
   const displayMetrics = useMemo(() => {
     // Calculate metrics based on displayData (which includes period filter)
     const totalInvestimento = displayData.reduce((sum, item) => sum + item.cost, 0);
+    const totalInvestimentoReal = displayData.reduce((sum, item) => sum + (item.realInvestment || 0), 0);
     const totalImpressoes = displayData.reduce((sum, item) => sum + item.impressions, 0);
     const totalCliques = displayData.reduce((sum, item) => sum + item.clicks, 0);
     const totalViews = displayData.reduce((sum, item) => sum + item.videoViews, 0);
@@ -165,24 +166,11 @@ const DashboardContent = () => {
     const vtr = totalImpressoes > 0 ? (totalVideoCompletions / totalImpressoes) * 100 : 0;
     const taxaEngajamento = totalImpressoes > 0 ? (totalEngajamento / totalImpressoes) * 100 : 0;
 
-    // Debug logs para métricas gerais
-    console.log('🔢 Métricas Gerais Calculadas:', {
-      totalImpressoes,
-      totalCliques,
-      totalVideoCompletions,
-      totalEngajamento,
-      ctr: `${ctr.toFixed(4)}%`,
-      vtr: `${vtr.toFixed(4)}%`,
-      taxaEngajamento: `${taxaEngajamento.toFixed(4)}%`,
-      formulas: {
-        ctr: `(${totalCliques} / ${totalImpressoes}) * 100`,
-        vtr: `(${totalVideoCompletions} / ${totalImpressoes}) * 100`,
-        taxaEngajamento: `(${totalEngajamento} / ${totalImpressoes}) * 100`
-      }
-    });
+    console.log('📊 App.tsx displayMetrics - Investimento Real:', totalInvestimentoReal);
 
     return {
       investimento: totalInvestimento,
+      investimentoReal: totalInvestimentoReal,
       impressoes: totalImpressoes,
       cliques: totalCliques,
       views: totalViews,

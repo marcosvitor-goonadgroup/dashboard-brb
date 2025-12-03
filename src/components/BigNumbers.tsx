@@ -87,8 +87,12 @@ const BigNumbers = ({
   const cliquesComparison = getComparisonData(metrics.cliques, 'cliques');
   const ctrComparison = getComparisonData(metrics.ctr, 'ctr');
 
+  console.log('💳 BigNumbers - Investimento Real:', metrics.investimentoReal, 'Defined?', metrics.investimentoReal !== undefined);
+
+  const hasRealInvestment = metrics.investimentoReal !== undefined && metrics.investimentoReal > 0;
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+    <div className={`grid grid-cols-2 md:grid-cols-3 ${hasRealInvestment ? 'lg:grid-cols-6' : 'lg:grid-cols-5'} gap-4`}>
       {/* Investimento - agora com comparação */}
       <div className="bg-white rounded-lg border border-gray-200 p-4">
         <p className="text-xs font-medium text-gray-500 mb-1">
@@ -109,6 +113,23 @@ const BigNumbers = ({
           </div>
         )}
       </div>
+
+      {/* Investimento Real - novo card */}
+      {hasRealInvestment && (
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <p className="text-xs font-medium text-gray-500 mb-1">
+            Investimento Real
+          </p>
+          <p className="text-2xl font-bold text-green-600">
+            {formatCurrency(metrics.investimentoReal!)}
+          </p>
+          <div className="mt-2 pt-2 border-t border-gray-100">
+            <p className="text-xs text-gray-500">
+              Calculado pela tabela de preços
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Impressões - agora com comparação */}
       <div className="bg-white rounded-lg border border-gray-200 p-4">

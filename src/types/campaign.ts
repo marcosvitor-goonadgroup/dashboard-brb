@@ -47,10 +47,12 @@ export interface ProcessedCampaignData {
   tipoDeCompra: string;
   videoEstaticoAudio: string;
   campanha: string;
+  realInvestment?: number; // Investimento calculado pela tabela de preços
 }
 
 export interface CampaignMetrics {
   investimento: number;
+  investimentoReal?: number; // Investimento calculado pela tabela de preços
   impressoes: number;
   cliques: number;
   views: number;
@@ -129,4 +131,14 @@ export interface VehicleBenchmark {
 export interface BenchmarkConfig {
   geral: BenchmarkKPIs;
   veiculos: VehicleBenchmark[];
+}
+
+export interface PricingTableRow {
+  veiculo: string;
+  canal: string;
+  formato: string;
+  tipoDeCompra: string;
+  valorUnitario: number;
+  desconto: number;
+  valorFinal: number;
 }

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { ProcessedCampaignData, Filters, CampaignSummary, CampaignMetrics } from '../types/campaign';
-import { fetchCampaignData } from '../services/api';
+import { ProcessedCampaignData, Filters, CampaignSummary, CampaignMetrics, PricingTableRow } from '../types/campaign';
+import { fetchCampaignData, fetchPricingTable } from '../services/api';
+import { calculateRealInvestment } from '../utils/investmentCalculator';
 import { subDays, isAfter } from 'date-fns';
 
 interface CampaignContextType {
@@ -38,6 +39,7 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
   const [filteredData, setFilteredData] = useState<ProcessedCampaignData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pricingTable, setPricingTable] = useState<PricingTableRow[]>([]);
   const [filters, setFilters] = useState<Filters>({
     dateRange: { start: null, end: null },
     veiculo: [],
@@ -49,9 +51,27 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const campaignData = await fetchCampaignData();
-        setData(campaignData);
-        setFilteredData(campaignData);
+
+        // Carrega dados de campanha e tabela de preços em paralelo
+        const [campaignData, pricingData] = await Promise.all([
+          fetchCampaignData(),
+          fetchPricingTable()
+        ]);
+
+        console.log('📊 Tabela de preços carregada:', pricingData.length, 'registros');
+        console.log('📊 Dados de campanha carregados:', campaignData.length, 'registros');
+
+        // Calcula investimento real para cada item
+        const dataWithRealInvestment = campaignData.map(item => ({
+          ...item,
+          realInvestment: calculateRealInvestment(item, pricingData)
+        }));
+
+        console.log('💰 Investimento real calculado para', dataWithRealInvestment.length, 'registros');
+
+        setPricingTable(pricingData);
+        setData(dataWithRealInvestment);
+        setFilteredData(dataWithRealInvestment);
         setError(null);
       } catch (err) {
         setError('Erro ao carregar dados das campanhas');
@@ -90,15 +110,22 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
     const totals = dataSet.reduce(
       (acc, row) => ({
         investimento: acc.investimento + row.cost,
+        investimentoReal: acc.investimentoReal + (row.realInvestment || 0),
         impressoes: acc.impressoes + row.impressions,
         cliques: acc.cliques + row.clicks,
         views: acc.views + row.videoViews,
         engajamento: acc.engajamento + row.totalEngagements
       }),
-      { investimento: 0, impressoes: 0, cliques: 0, views: 0, engajamento: 0 }
+      { investimento: 0, investimentoReal: 0, impressoes: 0, cliques: 0, views: 0, engajamento: 0 }
     );
 
-    return {
+    console.log('💵 Métricas calculadas:', {
+      investimento: totals.investimento,
+      investimentoReal: totals.investimentoReal,
+      diferenca: totals.investimento - totals.investimentoReal
+    });
+
+    const result = {
       ...totals,
       cpm: totals.impressoes > 0 ? (totals.investimento / totals.impressoes) * 1000 : 0,
       cpc: totals.cliques > 0 ? totals.investimento / totals.cliques : 0,
@@ -108,6 +135,10 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
       vtr: totals.impressoes > 0 ? (dataSet.reduce((acc, row) => acc + row.videoCompletions, 0) / totals.impressoes) * 100 : 0,
       taxaEngajamento: totals.impressoes > 0 ? (totals.engajamento / totals.impressoes) * 100 : 0
     };
+
+    console.log('📦 Retornando métricas com investimentoReal:', result.investimentoReal);
+
+    return result;
   };
 
   const campaigns: CampaignSummary[] = Array.from(

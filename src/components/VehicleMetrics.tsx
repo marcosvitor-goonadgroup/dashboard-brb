@@ -172,21 +172,6 @@ const VehicleMetrics = ({ data, selectedCampaign, periodFilter, filters, vehicle
       const vtr = metrics.impressoes > 0 ? (metrics.videoCompletions / metrics.impressoes) * 100 : 0;
       const taxaEngajamento = metrics.impressoes > 0 ? (metrics.engajamento / metrics.impressoes) * 100 : 0;
 
-      console.log(`🚗 Veículo: ${veiculo}`, {
-        impressoes: metrics.impressoes,
-        cliques: metrics.cliques,
-        videoCompletions: metrics.videoCompletions,
-        engajamento: metrics.engajamento,
-        ctr: `${ctr.toFixed(4)}%`,
-        vtr: `${vtr.toFixed(4)}%`,
-        taxaEngajamento: `${taxaEngajamento.toFixed(4)}%`,
-        formulas: {
-          ctr: `(${metrics.cliques} / ${metrics.impressoes}) * 100`,
-          vtr: `(${metrics.videoCompletions} / ${metrics.impressoes}) * 100`,
-          taxaEngajamento: `(${metrics.engajamento} / ${metrics.impressoes}) * 100`
-        }
-      });
-
       return {
         veiculo,
         impressoes: metrics.impressoes,
