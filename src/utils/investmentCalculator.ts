@@ -18,12 +18,10 @@ export const calculateRealInvestment = (
   if (!pricing) {
     // Se não encontrar preço na tabela, retorna o custo original
     console.warn(`Preço não encontrado para veículo "${data.veiculo}" e tipo de compra "${data.tipoDeCompra}"`);
-    console.log('Veículos disponíveis na tabela:', Array.from(new Set(pricingTable.map(p => p.veiculo))));
-    console.log('Tipos de compra disponíveis:', Array.from(new Set(pricingTable.map(p => p.tipoDeCompra))));
+
     return data.cost;
   }
 
-  console.log(`✅ Match encontrado: ${data.veiculo} - ${data.tipoDeCompra} = R$ ${pricing.valorFinal}`);
 
   const tipoDeCompra = data.tipoDeCompra.toUpperCase();
 

@@ -100,9 +100,13 @@ const DashboardContent = () => {
   const displayData = useMemo(() => {
     let filteredDataCopy = filteredData;
 
+    // Sempre exclui o dia atual (considera apenas até D-1)
+    const yesterday = subDays(new Date(), 1);
+    filteredDataCopy = filteredDataCopy.filter(item => item.date <= yesterday);
+
     // Filter by period
     if (periodFilter === '7days') {
-      const sevenDaysAgo = subDays(new Date(), 7);
+      const sevenDaysAgo = subDays(yesterday, 7);
       filteredDataCopy = filteredDataCopy.filter(item => item.date >= sevenDaysAgo);
     }
 
@@ -118,8 +122,9 @@ const DashboardContent = () => {
   const previousPeriodMetrics = useMemo(() => {
     if (periodFilter !== '7days') return null;
 
-    const sevenDaysAgo = subDays(new Date(), 7);
-    const fourteenDaysAgo = subDays(new Date(), 14);
+    const yesterday = subDays(new Date(), 1);
+    const sevenDaysAgo = subDays(yesterday, 7);
+    const fourteenDaysAgo = subDays(yesterday, 14);
 
     let previousData = filteredData.filter(item =>
       item.date >= fourteenDaysAgo && item.date < sevenDaysAgo
@@ -165,8 +170,6 @@ const DashboardContent = () => {
     const ctr = totalImpressoes > 0 ? (totalCliques / totalImpressoes) * 100 : 0;
     const vtr = totalImpressoes > 0 ? (totalVideoCompletions / totalImpressoes) * 100 : 0;
     const taxaEngajamento = totalImpressoes > 0 ? (totalEngajamento / totalImpressoes) * 100 : 0;
-
-    console.log('📊 App.tsx displayMetrics - Investimento Real:', totalInvestimentoReal);
 
     return {
       investimento: totalInvestimento,
@@ -258,8 +261,11 @@ const DashboardContent = () => {
             <div className="lg:col-span-2">
               <ImpressionsChart
                 data={displayData}
+                allData={filteredData}
                 periodFilter={periodFilter}
                 onPeriodFilterChange={setPeriodFilter}
+                comparisonMode={comparisonMode}
+                showComparison={periodFilter === '7days'}
               />
             </div>
           </div>

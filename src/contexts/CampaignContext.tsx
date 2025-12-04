@@ -57,17 +57,22 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
           fetchPricingTable()
         ]);
 
-        console.log('📊 Tabela de preços carregada:', pricingData.length, 'registros');
-        console.log('📊 Dados de campanha carregados:', campaignData.length, 'registros');
+ 
+        // Campanhas excluídas do dashboard
+        const excludedCampaigns = ['BRB CARD - Friday', 'BRB BANCO', 'BRB Banco'];
+
+        // Filtra campanhas excluídas
+        const filteredCampaignData = campaignData.filter(
+          item => !excludedCampaigns.includes(item.campanha)
+        );
+
 
         // Calcula investimento real para cada item
-        const dataWithRealInvestment = campaignData.map(item => ({
+        const dataWithRealInvestment = filteredCampaignData.map(item => ({
           ...item,
           realInvestment: calculateRealInvestment(item, pricingData)
         }));
 
-        console.log('💰 Investimento real calculado para', dataWithRealInvestment.length, 'registros');
-        console.log('📊 Tabela de preços com', pricingData.length, 'registros carregada');
 
         setData(dataWithRealInvestment);
         setFilteredData(dataWithRealInvestment);
@@ -117,13 +122,7 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
       }),
       { investimento: 0, investimentoReal: 0, impressoes: 0, cliques: 0, views: 0, engajamento: 0 }
     );
-
-    console.log('💵 Métricas calculadas:', {
-      investimento: totals.investimento,
-      investimentoReal: totals.investimentoReal,
-      diferenca: totals.investimento - totals.investimentoReal
-    });
-
+   
     const result = {
       ...totals,
       cpm: totals.impressoes > 0 ? (totals.investimento / totals.impressoes) * 1000 : 0,
@@ -134,9 +133,6 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
       vtr: totals.impressoes > 0 ? (dataSet.reduce((acc, row) => acc + row.videoCompletions, 0) / totals.impressoes) * 100 : 0,
       taxaEngajamento: totals.impressoes > 0 ? (totals.engajamento / totals.impressoes) * 100 : 0
     };
-
-    console.log('📦 Retornando métricas com investimentoReal:', result.investimentoReal);
-
     return result;
   };
 

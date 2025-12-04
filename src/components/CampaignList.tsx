@@ -71,7 +71,11 @@ const CampaignList = ({ campaigns, selectedCampaign, onSelectCampaign }: Campaig
                     <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-2 text-xs text-gray-600">
                       <div>
                         <span className="font-medium">Investimento:</span>{' '}
-                        {formatCurrency(campaign.metrics.investimento)}
+                        {formatCurrency(
+                          campaign.metrics.investimentoReal && campaign.metrics.investimentoReal > 0
+                            ? campaign.metrics.investimentoReal
+                            : campaign.metrics.investimento
+                        )}
                       </div>
                       <div>
                         <span className="font-medium">Impressões:</span>{' '}

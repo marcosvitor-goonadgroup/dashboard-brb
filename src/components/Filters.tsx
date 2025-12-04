@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useCampaign } from '../contexts/CampaignContext';
-import { format } from 'date-fns';
+import { format, subDays } from 'date-fns';
 
 interface FiltersProps {
   isOpen: boolean;
@@ -11,6 +11,9 @@ const Filters = ({ isOpen, onClose }: FiltersProps) => {
   const { filters, setFilters, availableFilters } = useCampaign();
 
   const [localFilters, setLocalFilters] = useState(filters);
+
+  // Data máxima permitida é D-1 (ontem)
+  const maxDate = useMemo(() => format(subDays(new Date(), 1), 'yyyy-MM-dd'), []);
 
   const handleApply = () => {
     setFilters(localFilters);
@@ -68,12 +71,25 @@ const Filters = ({ isOpen, onClose }: FiltersProps) => {
               </label>
               <input
                 type="date"
+                max={maxDate}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={localFilters.dateRange.start ? format(localFilters.dateRange.start, 'yyyy-MM-dd') : ''}
-                onChange={(e) => setLocalFilters(prev => ({
-                  ...prev,
-                  dateRange: { ...prev.dateRange, start: e.target.value ? new Date(e.target.value) : null }
-                }))}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    // Cria a data corretamente no fuso horário local
+                    const [year, month, day] = e.target.value.split('-').map(Number);
+                    const selectedDate = new Date(year, month - 1, day);
+                    setLocalFilters(prev => ({
+                      ...prev,
+                      dateRange: { ...prev.dateRange, start: selectedDate }
+                    }));
+                  } else {
+                    setLocalFilters(prev => ({
+                      ...prev,
+                      dateRange: { ...prev.dateRange, start: null }
+                    }));
+                  }
+                }}
               />
             </div>
 
@@ -83,12 +99,25 @@ const Filters = ({ isOpen, onClose }: FiltersProps) => {
               </label>
               <input
                 type="date"
+                max={maxDate}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={localFilters.dateRange.end ? format(localFilters.dateRange.end, 'yyyy-MM-dd') : ''}
-                onChange={(e) => setLocalFilters(prev => ({
-                  ...prev,
-                  dateRange: { ...prev.dateRange, end: e.target.value ? new Date(e.target.value) : null }
-                }))}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    // Cria a data corretamente no fuso horário local
+                    const [year, month, day] = e.target.value.split('-').map(Number);
+                    const selectedDate = new Date(year, month - 1, day);
+                    setLocalFilters(prev => ({
+                      ...prev,
+                      dateRange: { ...prev.dateRange, end: selectedDate }
+                    }));
+                  } else {
+                    setLocalFilters(prev => ({
+                      ...prev,
+                      dateRange: { ...prev.dateRange, end: null }
+                    }));
+                  }
+                }}
               />
             </div>
 
