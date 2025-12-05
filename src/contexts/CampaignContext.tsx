@@ -17,6 +17,7 @@ interface CampaignContextType {
     veiculos: string[];
     tiposDeCompra: string[];
     campanhas: string[];
+    numerosPi: string[];
   };
 }
 
@@ -43,7 +44,8 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
     dateRange: { start: null, end: null },
     veiculo: [],
     tipoDeCompra: [],
-    campanha: []
+    campanha: [],
+    numeroPi: null
   });
 
   useEffect(() => {
@@ -97,14 +99,17 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
     if (filters.dateRange.end) {
       filtered = filtered.filter(d => d.date <= filters.dateRange.end!);
     }
+    if (filters.campanha.length > 0) {
+      filtered = filtered.filter(d => filters.campanha.includes(d.campanha));
+    }
+    if (filters.numeroPi) {
+      filtered = filtered.filter(d => d.numeroPi === filters.numeroPi);
+    }
     if (filters.veiculo.length > 0) {
       filtered = filtered.filter(d => filters.veiculo.includes(d.veiculo));
     }
     if (filters.tipoDeCompra.length > 0) {
       filtered = filtered.filter(d => filters.tipoDeCompra.includes(d.tipoDeCompra));
-    }
-    if (filters.campanha.length > 0) {
-      filtered = filtered.filter(d => filters.campanha.includes(d.campanha));
     }
 
     setFilteredData(filtered);
@@ -168,7 +173,8 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
   const availableFilters = {
     veiculos: Array.from(new Set(data.map(d => d.veiculo).filter(Boolean))),
     tiposDeCompra: Array.from(new Set(data.map(d => d.tipoDeCompra).filter(Boolean))),
-    campanhas: Array.from(new Set(data.map(d => d.campanha).filter(Boolean)))
+    campanhas: Array.from(new Set(data.map(d => d.campanha).filter(Boolean))),
+    numerosPi: Array.from(new Set(data.map(d => d.numeroPi).filter(Boolean)))
   };
 
   return (

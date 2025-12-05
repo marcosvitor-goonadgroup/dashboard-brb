@@ -72,7 +72,13 @@ export const fetchCampaignData = async (): Promise<ProcessedCampaignData[]> => {
         const rows = response.data.data.values.slice(1);
 
         rows.forEach(row => {
-          if (row.length >= 18) {
+          if (row.length >= 19) {
+            // Ignora linhas onde o Número PI é "#VALUE!"
+            const numeroPi = row[18] || '';
+            if (numeroPi === '#VALUE!') {
+              return;
+            }
+
             const dataRow: ProcessedCampaignData = {
               date: parseDate(row[0]),
               campaignName: row[1] || '',
@@ -91,7 +97,8 @@ export const fetchCampaignData = async (): Promise<ProcessedCampaignData[]> => {
               veiculo: normalizeVeiculo(row[14] || ''),
               tipoDeCompra: row[15] || '',
               videoEstaticoAudio: row[16] || '',
-              campanha: row[17] || ''
+              campanha: row[17] || '',
+              numeroPi: numeroPi
             };
             allData.push(dataRow);
           }

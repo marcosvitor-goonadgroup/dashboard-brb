@@ -25,7 +25,8 @@ const Filters = ({ isOpen, onClose }: FiltersProps) => {
       dateRange: { start: null, end: null },
       veiculo: [],
       tipoDeCompra: [],
-      campanha: []
+      campanha: [],
+      numeroPi: null
     };
     setLocalFilters(clearedFilters);
     setFilters(clearedFilters);
@@ -123,6 +124,48 @@ const Filters = ({ isOpen, onClose }: FiltersProps) => {
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Campanha
+              </label>
+              <div className="space-y-2">
+                {availableFilters.campanhas.map(campanha => (
+                  <label key={campanha} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={localFilters.campanha.includes(campanha)}
+                      onChange={() => toggleArrayFilter('campanha', campanha)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">{campanha}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Número PI
+              </label>
+              <select
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={localFilters.numeroPi || ''}
+                onChange={(e) => {
+                  setLocalFilters(prev => ({
+                    ...prev,
+                    numeroPi: e.target.value || null
+                  }));
+                }}
+              >
+                <option value="">Todos</option>
+                {availableFilters.numerosPi.map(numeroPi => (
+                  <option key={numeroPi} value={numeroPi}>
+                    {numeroPi}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Veículo
               </label>
               <div className="space-y-2">
@@ -154,25 +197,6 @@ const Filters = ({ isOpen, onClose }: FiltersProps) => {
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
                     <span className="ml-2 text-sm text-gray-700">{tipo}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Campanha
-              </label>
-              <div className="space-y-2">
-                {availableFilters.campanhas.map(campanha => (
-                  <label key={campanha} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={localFilters.campanha.includes(campanha)}
-                      onChange={() => toggleArrayFilter('campanha', campanha)}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">{campanha}</span>
                   </label>
                 ))}
               </div>

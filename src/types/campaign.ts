@@ -17,6 +17,7 @@ export interface CampaignDataRow {
   "Tipo de Compra": string;
   video_estatico_audio: string;
   Campanha: string;
+  "Número PI": string;
 }
 
 export interface ApiResponse {
@@ -47,6 +48,7 @@ export interface ProcessedCampaignData {
   tipoDeCompra: string;
   videoEstaticoAudio: string;
   campanha: string;
+  numeroPi: string;
   realInvestment?: number; // Investimento calculado pela tabela de preços
 }
 
@@ -81,6 +83,7 @@ export interface Filters {
   veiculo: string[];
   tipoDeCompra: string[];
   campanha: string[];
+  numeroPi: string | null;
 }
 
 export interface GoogleSearchDataRow {
