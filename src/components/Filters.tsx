@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useCampaign } from '../contexts/CampaignContext';
 import { format, subDays } from 'date-fns';
 
@@ -8,12 +8,50 @@ interface FiltersProps {
 }
 
 const Filters = ({ isOpen, onClose }: FiltersProps) => {
-  const { filters, setFilters, availableFilters } = useCampaign();
+  const { filters, setFilters, availableFilters, data } = useCampaign();
 
   const [localFilters, setLocalFilters] = useState(filters);
 
+  // Sincroniza localFilters quando o modal abre
+  useEffect(() => {
+    if (isOpen) {
+      setLocalFilters(filters);
+    }
+  }, [isOpen, filters]);
+
   // Data máxima permitida é D-1 (ontem)
   const maxDate = useMemo(() => format(subDays(new Date(), 1), 'yyyy-MM-dd'), []);
+
+  // Filtra os Números PI disponíveis baseado nos filtros locais ativos
+  const filteredNumerosPi = useMemo(() => {
+    let filtered = [...data];
+
+    // Aplica filtro de data
+    if (localFilters.dateRange.start) {
+      filtered = filtered.filter(d => d.date >= localFilters.dateRange.start!);
+    }
+    if (localFilters.dateRange.end) {
+      filtered = filtered.filter(d => d.date <= localFilters.dateRange.end!);
+    }
+
+    // Aplica filtro de campanha
+    if (localFilters.campanha.length > 0) {
+      filtered = filtered.filter(d => localFilters.campanha.includes(d.campanha));
+    }
+
+    // Aplica filtro de veículo
+    if (localFilters.veiculo.length > 0) {
+      filtered = filtered.filter(d => localFilters.veiculo.includes(d.veiculo));
+    }
+
+    // Aplica filtro de tipo de compra
+    if (localFilters.tipoDeCompra.length > 0) {
+      filtered = filtered.filter(d => localFilters.tipoDeCompra.includes(d.tipoDeCompra));
+    }
+
+    // Extrai Números PI únicos do dataset filtrado
+    return Array.from(new Set(filtered.map(d => d.numeroPi).filter(Boolean)));
+  }, [data, localFilters.dateRange, localFilters.campanha, localFilters.veiculo, localFilters.tipoDeCompra]);
 
   const handleApply = () => {
     setFilters(localFilters);
@@ -156,7 +194,7 @@ const Filters = ({ isOpen, onClose }: FiltersProps) => {
                 }}
               >
                 <option value="">Todos</option>
-                {availableFilters.numerosPi.map(numeroPi => (
+                {filteredNumerosPi.map(numeroPi => (
                   <option key={numeroPi} value={numeroPi}>
                     {numeroPi}
                   </option>
