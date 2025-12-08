@@ -3,7 +3,7 @@ import { ProcessedCampaignData } from '../types/campaign';
 import { benchmarkConfig, getBenchmarkByVehicleAndType } from '../config/benchmarks';
 import { subDays, format } from 'date-fns';
 
-const API_KEY = import.meta.env.GEMINI_API;
+const API_KEY = import.meta.env.VITE_GEMINI_API;
 
 // Lista de modelos por prioridade
 const MODELS = [
