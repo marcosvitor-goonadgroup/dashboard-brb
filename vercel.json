@@ -1,0 +1,15 @@
+{
+  "functions": {
+    "api/**/*.ts": {
+      "runtime": "@vercel/node@3.0.0"
+    }
+  },
+  "env": {
+    "VITE_GEMINI_API_KEY": "@gemini-api-key"
+  },
+  "build": {
+    "env": {
+      "VITE_GEMINI_API_KEY": "@gemini-api-key"
+    }
+  }
+}

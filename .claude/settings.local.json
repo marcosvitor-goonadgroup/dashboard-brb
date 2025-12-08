@@ -6,7 +6,14 @@
       "Bash(npm install:*)",
       "Bash(npx tailwindcss init -p)",
       "Bash(npm run dev:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(timeout /t 5 /nobreak)",
+      "Bash(timeout /t 8 /nobreak)",
+      "Bash(exit 0)",
+      "Bash(taskkill /F /FI \"WINDOWTITLE eq npm run dev\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)"
     ],
     "deny": [],
     "ask": []

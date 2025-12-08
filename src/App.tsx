@@ -9,6 +9,7 @@ import VehicleMetrics from './components/VehicleMetrics';
 import CreativePerformance from './components/CreativePerformance';
 import SearchTermsAnalysis from './components/SearchTermsAnalysis';
 import ComparisonToggle from './components/ComparisonToggle';
+import AIAnalysis from './components/AIAnalysis';
 import { fetchSearchTermsData } from './services/api';
 import { ProcessedSearchData } from './types/campaign';
 import { subDays } from 'date-fns';
@@ -270,14 +271,25 @@ const DashboardContent = () => {
             </div>
           </div>
 
-          <div>
-            <VehicleMetrics
-              data={filteredData}
-              selectedCampaign={selectedCampaign}
-              periodFilter={periodFilter}
-              filters={filters}
-              vehicleBenchmarks={vehicleBenchmarks}
-            />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <VehicleMetrics
+                data={filteredData}
+                selectedCampaign={selectedCampaign}
+                periodFilter={periodFilter}
+                filters={filters}
+                vehicleBenchmarks={vehicleBenchmarks}
+              />
+            </div>
+
+            <div>
+              <AIAnalysis
+                data={displayData}
+                allData={filteredData}
+                periodFilter={periodFilter}
+                selectedCampaign={selectedCampaign}
+              />
+            </div>
           </div>
 
           <div>

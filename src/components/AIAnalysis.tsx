@@ -1,0 +1,269 @@
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { ProcessedCampaignData } from '../types/campaign';
+import { generateWeeklyAnalysis } from '../services/gemini';
+
+interface AIAnalysisProps {
+  data: ProcessedCampaignData[];
+  allData: ProcessedCampaignData[];
+  periodFilter: '7days' | 'all';
+  selectedCampaign: string | null;
+}
+
+const AIAnalysis = ({ data, allData, periodFilter, selectedCampaign }: AIAnalysisProps) => {
+  const [analysis, setAnalysis] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Referência para evitar chamadas duplicadas
+  const isGeneratingRef = useRef(false);
+
+  // Cria uma chave única baseada nos dados para detectar mudanças reais
+  const dataKey = useMemo(() => {
+    if (periodFilter !== '7days' || data.length === 0) return null;
+
+    // Cria hash simples dos dados: campanha + total de registros + soma de impressões
+    const totalRecords = data.length;
+    const totalImpressions = data.reduce((sum, item) => sum + item.impressions, 0);
+    return `${selectedCampaign || 'all'}-${totalRecords}-${totalImpressions}`;
+  }, [data, periodFilter, selectedCampaign]);
+
+  // Armazena a última chave processada
+  const lastProcessedKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    // Só gera análise quando o filtro "Últimos 7 dias" está ativo
+    if (periodFilter === '7days' && data.length > 0 && dataKey) {
+      // Verifica se já processou esses dados
+      if (dataKey === lastProcessedKeyRef.current) {
+        console.log('📊 Análise já gerada para esses dados, pulando...');
+        return;
+      }
+
+      // Verifica se já está gerando
+      if (isGeneratingRef.current) {
+        console.log('⏳ Análise já em andamento, pulando nova chamada...');
+        return;
+      }
+
+      // Gera análise
+      lastProcessedKeyRef.current = dataKey;
+      generateAnalysis();
+    } else {
+      setAnalysis('');
+      setError(null);
+      lastProcessedKeyRef.current = null;
+    }
+  }, [dataKey, periodFilter]);
+
+  const generateAnalysis = async () => {
+    // Previne chamadas duplicadas
+    if (isGeneratingRef.current) {
+      console.log('⏳ Bloqueando chamada duplicada à API');
+      return;
+    }
+
+    if (!dataKey) {
+      console.error('❌ DataKey não disponível');
+      return;
+    }
+
+    isGeneratingRef.current = true;
+    setLoading(true);
+    setError(null);
+
+    try {
+      console.log('🚀 Iniciando busca/geração de análise...');
+      const { analysis: result, cached, timestamp } = await generateWeeklyAnalysis(
+        data,
+        allData,
+        dataKey
+      );
+
+      setAnalysis(result);
+
+      if (cached) {
+        console.log('📦 Análise carregada do cache (gerada em:', timestamp, ')');
+      } else {
+        console.log('✅ Nova análise gerada e salva no cache');
+      }
+    } catch (err: any) {
+      console.error('❌ Erro ao gerar análise:', err);
+      setError(err.message || 'Erro ao gerar análise. Tente novamente.');
+    } finally {
+      setLoading(false);
+      isGeneratingRef.current = false;
+    }
+  };
+
+  // Só renderiza quando "Últimos 7 dias" está ativo
+  if (periodFilter !== '7days') {
+    return null;
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg">
+            <svg
+              className="w-6 h-6 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+              />
+            </svg>
+          </div>
+          <h2 className="text-lg font-semibold text-gray-800">
+            Análise Semanal por IA
+          </h2>
+        </div>
+
+        {!loading && analysis && (
+          <button
+            onClick={generateAnalysis}
+            className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1.5"
+            title="Gerar nova análise"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            Atualizar
+          </button>
+        )}
+      </div>
+
+      <div className="mt-4">
+        {loading && (
+          <div className="flex items-center justify-center py-8">
+            <div className="flex flex-col items-center gap-3">
+              <div className="relative">
+                <div className="w-12 h-12 border-4 border-blue-200 rounded-full"></div>
+                <div className="w-12 h-12 border-4 border-blue-600 rounded-full animate-spin border-t-transparent absolute top-0"></div>
+              </div>
+              <p className="text-sm text-gray-600 font-medium">
+                Analisando dados da semana...
+              </p>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <svg
+                className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-red-800 mb-1">
+                  Erro ao gerar análise
+                </h3>
+                <p className="text-sm text-red-700">
+                  {error}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!loading && !error && analysis && (
+          <div className="prose prose-sm max-w-none">
+            <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-5 border border-blue-100">
+              <div className="flex items-start gap-3">
+                <svg
+                  className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
+                    {analysis}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!loading && !error && !analysis && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-5">
+            <div className="flex items-start gap-3">
+              <svg
+                className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <p className="text-sm text-gray-600">
+                Selecione "Últimos 7 dias" para visualizar a análise semanal gerada por IA.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="flex items-center gap-2 text-xs text-gray-500">
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13 10V3L4 14h7v7l9-11h-7z"
+            />
+          </svg>
+          <span>
+            Análise gerada por IA com base nos dados da semana e benchmarks
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AIAnalysis;
