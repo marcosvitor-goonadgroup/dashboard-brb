@@ -1,10 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { kv } from '@vercel/kv';
+import { createClient } from '@vercel/kv';
 
 interface AnalysisRequest {
   dataKey: string;
   analysis?: string;
 }
+
+// Cria cliente Redis com as variáveis de ambiente do Storage
+const kv = createClient({
+  url: process.env.STORAGE_REST_API_URL || process.env.KV_REST_API_URL,
+  token: process.env.STORAGE_REST_API_TOKEN || process.env.KV_REST_API_TOKEN,
+});
 
 export default async function handler(
   req: VercelRequest,
