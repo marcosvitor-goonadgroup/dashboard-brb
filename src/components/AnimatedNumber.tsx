@@ -16,7 +16,7 @@ const AnimatedNumber = ({
   const [displayValue, setDisplayValue] = useState(0);
   const [isAnimating, setIsAnimating] = useState(true);
   const startTimeRef = useRef<number | null>(null);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     if (value === 0) {
