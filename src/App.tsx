@@ -232,13 +232,46 @@ const DashboardContent = () => {
         <div className="space-y-6">
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-medium text-gray-600">Resultados</h2>
-              {periodFilter === '7days' && (
-                <ComparisonToggle
-                  comparisonMode={comparisonMode}
-                  onModeChange={setComparisonMode}
-                />
-              )}
+              <div className="flex items-center gap-4">
+                <h2 className="text-sm font-medium text-gray-600">Resultados</h2>
+
+                {/* Botões de Período */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPeriodFilter('7days')}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                      periodFilter === '7days'
+                        ? 'bg-green-600 text-white shadow-md hover:bg-green-700'
+                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    Últimos 7 dias
+                  </button>
+                  <button
+                    onClick={() => setPeriodFilter('all')}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                      periodFilter === 'all'
+                        ? 'bg-green-600 text-white shadow-md hover:bg-green-700'
+                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    Todo o período
+                  </button>
+                </div>
+
+                {/* Divisória */}
+                {periodFilter === '7days' && (
+                  <>
+                    <div className="h-8 w-px bg-gradient-to-b from-transparent via-gray-300 to-transparent"></div>
+
+                    {/* Botões de Comparação */}
+                    <ComparisonToggle
+                      comparisonMode={comparisonMode}
+                      onModeChange={setComparisonMode}
+                    />
+                  </>
+                )}
+              </div>
             </div>
             <BigNumbers
               metrics={displayMetrics}
@@ -251,7 +284,7 @@ const DashboardContent = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 flex">
               <CampaignList
                 campaigns={campaigns}
                 selectedCampaign={selectedCampaign}
@@ -259,37 +292,34 @@ const DashboardContent = () => {
               />
             </div>
 
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 flex">
               <ImpressionsChart
                 data={displayData}
                 allData={filteredData}
                 periodFilter={periodFilter}
-                onPeriodFilterChange={setPeriodFilter}
                 comparisonMode={comparisonMode}
                 showComparison={periodFilter === '7days'}
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div>
-              <VehicleMetrics
-                data={filteredData}
-                selectedCampaign={selectedCampaign}
-                periodFilter={periodFilter}
-                filters={filters}
-                vehicleBenchmarks={vehicleBenchmarks}
-              />
-            </div>
+          <div>
+            <VehicleMetrics
+              data={filteredData}
+              selectedCampaign={selectedCampaign}
+              periodFilter={periodFilter}
+              filters={filters}
+              vehicleBenchmarks={vehicleBenchmarks}
+            />
+          </div>
 
-            <div>
-              <AIAnalysis
-                data={displayData}
-                allData={filteredData}
-                periodFilter={periodFilter}
-                selectedCampaign={selectedCampaign}
-              />
-            </div>
+          <div>
+            <AIAnalysis
+              data={displayData}
+              allData={filteredData}
+              periodFilter={periodFilter}
+              selectedCampaign={selectedCampaign}
+            />
           </div>
 
           <div>

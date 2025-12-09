@@ -1,5 +1,6 @@
 import { CampaignMetrics, Filters } from '../types/campaign';
 import BenchmarkIndicator from './BenchmarkIndicator';
+import AnimatedNumber from './AnimatedNumber';
 
 interface BigNumbersProps {
   metrics: CampaignMetrics;
@@ -100,7 +101,11 @@ const BigNumbers = ({
           Investimento
         </p>
         <p className="text-2xl font-bold text-blue-600">
-          {formatCurrency(displayInvestment)}
+          <AnimatedNumber
+            value={displayInvestment}
+            formatter={formatCurrency}
+            duration={2000}
+          />
         </p>
         {comparisonMode === 'previous' && showComparison && previousPeriodMetrics && (
           <div className="mt-2 pt-2 border-t border-gray-100">
@@ -121,7 +126,11 @@ const BigNumbers = ({
           Impressões
         </p>
         <p className="text-2xl font-bold text-cyan-600">
-          {formatNumber(metrics.impressoes)}
+          <AnimatedNumber
+            value={metrics.impressoes}
+            formatter={formatNumber}
+            duration={2000}
+          />
         </p>
         {comparisonMode === 'previous' && showComparison && previousPeriodMetrics && (
           <div className="mt-2 pt-2 border-t border-gray-100">
@@ -142,7 +151,11 @@ const BigNumbers = ({
           Views
         </p>
         <p className="text-2xl font-bold text-blue-500">
-          {formatNumber(metrics.views)}
+          <AnimatedNumber
+            value={metrics.views}
+            formatter={formatNumber}
+            duration={2000}
+          />
         </p>
         {comparisonMode === 'previous' && showComparison && previousPeriodMetrics && (
           <div className="mt-2 pt-2 border-t border-gray-100">
@@ -174,7 +187,11 @@ const BigNumbers = ({
           Engajamento
         </p>
         <p className="text-2xl font-bold text-purple-600">
-          {formatNumber(metrics.engajamento)}
+          <AnimatedNumber
+            value={metrics.engajamento}
+            formatter={formatNumber}
+            duration={2000}
+          />
         </p>
         {comparisonMode === 'previous' && showComparison && previousPeriodMetrics && (
           <div className="mt-2 pt-2 border-t border-gray-100">
@@ -206,7 +223,11 @@ const BigNumbers = ({
           Cliques
         </p>
         <p className="text-2xl font-bold text-indigo-600">
-          {formatNumber(metrics.cliques)}
+          <AnimatedNumber
+            value={metrics.cliques}
+            formatter={formatNumber}
+            duration={2000}
+          />
         </p>
         {comparisonMode === 'previous' && showComparison && previousPeriodMetrics && (
           <div className="mt-2 pt-2 border-t border-gray-100">

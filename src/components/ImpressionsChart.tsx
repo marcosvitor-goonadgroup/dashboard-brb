@@ -8,7 +8,6 @@ interface ImpressionsChartProps {
   data: ProcessedCampaignData[]; // Dados já filtrados pelo período
   allData?: ProcessedCampaignData[]; // Todos os dados (para calcular período anterior)
   periodFilter: '7days' | 'all';
-  onPeriodFilterChange: (period: '7days' | 'all') => void;
   comparisonMode?: 'benchmark' | 'previous';
   showComparison?: boolean;
 }
@@ -25,7 +24,7 @@ const metricOptions = [
   { value: 'taxaEngajamento', label: 'Taxa Engajamento' }
 ];
 
-const ImpressionsChart = ({ data, allData, periodFilter, onPeriodFilterChange, comparisonMode = 'benchmark', showComparison = false }: ImpressionsChartProps) => {
+const ImpressionsChart = ({ data, allData, periodFilter, comparisonMode = 'benchmark', showComparison = false }: ImpressionsChartProps) => {
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('impressoes');
 
   // Sempre considera D-1 (ontem) como o dia mais recente
@@ -243,29 +242,6 @@ const ImpressionsChart = ({ data, allData, periodFilter, onPeriodFilterChange, c
           <h2 className="text-lg font-semibold text-gray-800 flex-shrink-0">
             {selectedMetricLabel} vs Data
           </h2>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onPeriodFilterChange('7days')}
-              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                periodFilter === '7days'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Últimos 7 dias
-            </button>
-            <button
-              onClick={() => onPeriodFilterChange('all')}
-              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                periodFilter === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Todo o período
-            </button>
-          </div>
 
           <select
             value={selectedMetric}
