@@ -109,8 +109,15 @@ const AIAnalysis = ({ data, allData, periodFilter, selectedCampaign }: AIAnalysi
 
     setSaving(true);
     try {
+      // Determina a URL base dependendo do ambiente
+      const apiUrl = import.meta.env.PROD
+        ? '/api/analysis'
+        : 'http://localhost:3000/api/analysis';
+
+      console.log('📤 Enviando análise editada para:', apiUrl);
+
       // Salvar diretamente no cache via API
-      const response = await fetch('/api/analysis', {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -122,6 +129,8 @@ const AIAnalysis = ({ data, allData, periodFilter, selectedCampaign }: AIAnalysi
       });
 
       if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Erro na resposta:', response.status, errorData);
         throw new Error('Erro ao salvar análise editada');
       }
 
