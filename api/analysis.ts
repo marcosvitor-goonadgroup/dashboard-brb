@@ -24,9 +24,21 @@ export default async function handler(
   }
 
   try {
-    const { dataKey, analysis } = req.body as AnalysisRequest;
+    console.log('📥 Request recebida:', req.method, req.url);
+
+    // Para GET, dataKey vem dos query params
+    const dataKey = req.method === 'GET'
+      ? (req.query.dataKey as string)
+      : (req.body as AnalysisRequest).dataKey;
+
+    const analysis = req.method === 'POST'
+      ? (req.body as AnalysisRequest).analysis
+      : undefined;
+
+    console.log('🔑 DataKey:', dataKey);
 
     if (!dataKey) {
+      console.error('❌ dataKey não fornecido');
       return res.status(400).json({ error: 'dataKey é obrigatório' });
     }
 
@@ -35,11 +47,14 @@ export default async function handler(
 
     // GET - Buscar análise do cache
     if (req.method === 'GET' || !analysis) {
+      console.log('🔍 Buscando no Redis, chave:', cacheKey);
+
       const cached = await redis.get(cacheKey);
+      console.log('📦 Resultado do Redis (tipo):', typeof cached, 'valor existe?', !!cached);
 
       if (cached) {
         const timestamp = await redis.get(`${cacheKey}:timestamp`);
-        console.log('✅ Cache HIT:', cacheKey);
+        console.log('✅ Cache HIT:', cacheKey, 'timestamp:', timestamp);
 
         return res.status(200).json({
           analysis: cached,
@@ -76,10 +91,15 @@ export default async function handler(
     return res.status(405).json({ error: 'Método não permitido' });
 
   } catch (error: any) {
-    console.error('Erro na API de cache:', error);
+    console.error('❌ Erro na API de cache:', error);
+    console.error('Stack trace:', error.stack);
+    console.error('Redis URL configurado?', !!process.env.storage_REDIS_URL);
+
     return res.status(500).json({
       error: 'Erro ao processar requisição',
-      message: error.message
+      message: error.message,
+      type: error.name,
+      details: error.toString()
     });
   }
 }
