@@ -13,6 +13,9 @@ const AIAnalysis = ({ data, allData, periodFilter, selectedCampaign }: AIAnalysi
   const [analysis, setAnalysis] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editedAnalysis, setEditedAnalysis] = useState('');
+  const [saving, setSaving] = useState(false);
 
   // Referência para evitar chamadas duplicadas
   const isGeneratingRef = useRef(false);
@@ -95,6 +98,44 @@ const AIAnalysis = ({ data, allData, periodFilter, selectedCampaign }: AIAnalysi
     }
   };
 
+  const handleRightClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setEditedAnalysis(analysis);
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!dataKey || !editedAnalysis.trim()) return;
+
+    setSaving(true);
+    try {
+      // Salvar diretamente no cache via API
+      const response = await fetch('/api/analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dataKey,
+          analysis: editedAnalysis,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao salvar análise editada');
+      }
+
+      setAnalysis(editedAnalysis);
+      setShowEditModal(false);
+      console.log('✅ Análise editada salva com sucesso');
+    } catch (err: any) {
+      console.error('❌ Erro ao salvar:', err);
+      alert('Erro ao salvar a análise editada. Tente novamente.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Só renderiza quando "Últimos 7 dias" está ativo
   if (periodFilter !== '7days') {
     return null;
@@ -127,8 +168,9 @@ const AIAnalysis = ({ data, allData, periodFilter, selectedCampaign }: AIAnalysi
         {!loading && analysis && (
           <button
             onClick={generateAnalysis}
+            onContextMenu={handleRightClick}
             className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1.5"
-            title="Gerar nova análise"
+            title="Gerar nova análise | Clique direito para editar"
           >
             <svg
               className="w-4 h-4"
@@ -262,6 +304,118 @@ const AIAnalysis = ({ data, allData, periodFilter, selectedCampaign }: AIAnalysi
           </span>
         </div>
       </div>
+
+      {/* Modal de Edição */}
+      {showEditModal && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setShowEditModal(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg">
+                  <svg
+                    className="w-5 h-5 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-800">
+                  Editar Análise
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Fechar"
+              >
+                <svg
+                  className="w-5 h-5 text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Editor */}
+            <div className="flex-1 p-6 overflow-y-auto">
+              <textarea
+                value={editedAnalysis}
+                onChange={(e) => setEditedAnalysis(e.target.value)}
+                className="w-full h-full min-h-[300px] p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none font-sans text-sm leading-relaxed"
+                placeholder="Digite sua análise aqui..."
+                disabled={saving}
+              />
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
+              <p className="text-sm text-gray-500">
+                A análise editada será salva no cache
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  disabled={saving}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={saving || !editedAnalysis.trim()}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {saving ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                      Salvar
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
