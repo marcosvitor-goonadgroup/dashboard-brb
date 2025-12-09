@@ -40,7 +40,7 @@ const DashboardContent = () => {
     loadSearchTerms();
   }, []);
 
-  // Calcula os benchmarks gerais a partir de TODOS os dados (sem filtros)
+  // Calcula os benchmarks gerais a partir de TODOS os dados (sem filtros) - CÁLCULO LOCAL
   const generalBenchmarks = useMemo(() => {
     const totalImpressoes = data.reduce((sum, item) => sum + item.impressions, 0);
     const totalCliques = data.reduce((sum, item) => sum + item.clicks, 0);
