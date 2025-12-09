@@ -1,16 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createClient } from '@vercel/kv';
+import { Redis } from 'ioredis';
 
 interface AnalysisRequest {
   dataKey: string;
   analysis?: string;
 }
 
-// Cria cliente Redis com as variáveis de ambiente do Storage
-const kv = createClient({
-  url: process.env.STORAGE_REST_API_URL || process.env.KV_REST_API_URL,
-  token: process.env.STORAGE_REST_API_TOKEN || process.env.KV_REST_API_TOKEN,
-});
+// Cria cliente Redis usando ioredis para Redis Labs
+const redis = new Redis(process.env.storage_REDIS_URL || '');
 
 export default async function handler(
   req: VercelRequest,
@@ -38,10 +35,10 @@ export default async function handler(
 
     // GET - Buscar análise do cache
     if (req.method === 'GET' || !analysis) {
-      const cached = await kv.get(cacheKey);
+      const cached = await redis.get(cacheKey);
 
       if (cached) {
-        const timestamp = await kv.get(`${cacheKey}:timestamp`);
+        const timestamp = await redis.get(`${cacheKey}:timestamp`);
         console.log('✅ Cache HIT:', cacheKey);
 
         return res.status(200).json({
@@ -63,8 +60,8 @@ export default async function handler(
       const timestamp = new Date().toISOString();
 
       // Salva por 24 horas (86400 segundos)
-      await kv.set(cacheKey, analysis, { ex: 86400 });
-      await kv.set(`${cacheKey}:timestamp`, timestamp, { ex: 86400 });
+      await redis.set(cacheKey, analysis, 'EX', 86400);
+      await redis.set(`${cacheKey}:timestamp`, timestamp, 'EX', 86400);
 
       console.log('💾 Cache SAVED:', cacheKey);
 
