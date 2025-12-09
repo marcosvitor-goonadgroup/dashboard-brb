@@ -96,4 +96,4 @@ Servidor de desenvolvimento: **http://localhost:5174/**
 
 ---
 
-Desenvolvido para o **Banco BRB**
+Desenvolvido por GO ON
