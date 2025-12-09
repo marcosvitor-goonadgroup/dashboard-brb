@@ -236,7 +236,7 @@ const ImpressionsChart = ({ data, allData, periodFilter, comparisonMode = 'bench
   }, [sourceData, fourteenDaysAgo, sevenDaysAgo, periodFilter, comparisonMode, showComparison]);
 
   return (
-    <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
+    <div className="bg-white rounded-lg shadow border border-gray-200 p-6 h-full flex flex-col">
       <div className="mb-4">
         <div className="flex items-center justify-between gap-4">
           <h2 className="text-lg font-semibold text-gray-800 flex-shrink-0">
@@ -266,7 +266,7 @@ const ImpressionsChart = ({ data, allData, periodFilter, comparisonMode = 'bench
         )}
       </div>
 
-      <div className="h-80">
+      <div className="flex-1 min-h-[320px]">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />

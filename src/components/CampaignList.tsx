@@ -20,7 +20,7 @@ const formatNumber = (num: number): string => {
 
 const CampaignList = ({ campaigns, selectedCampaign, onSelectCampaign }: CampaignListProps) => {
   return (
-    <div className="bg-white rounded-lg shadow border border-gray-200">
+    <div className="bg-white rounded-lg shadow border border-gray-200 h-full flex flex-col">
       <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-800">
           Campanhas Ativas ({campaigns.length})
@@ -34,7 +34,7 @@ const CampaignList = ({ campaigns, selectedCampaign, onSelectCampaign }: Campaig
           </button>
         )}
       </div>
-      <div className="max-h-96 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto">
         {campaigns.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             Nenhuma campanha encontrada

@@ -283,23 +283,27 @@ const DashboardContent = () => {
             />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-4">
-              <CampaignList
-                campaigns={campaigns}
-                selectedCampaign={selectedCampaign}
-                onSelectCampaign={handleSelectCampaign}
-              />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:items-stretch">
+            <div className="lg:col-span-4 flex">
+              <div className="w-full">
+                <CampaignList
+                  campaigns={campaigns}
+                  selectedCampaign={selectedCampaign}
+                  onSelectCampaign={handleSelectCampaign}
+                />
+              </div>
             </div>
 
-            <div className="lg:col-span-8">
-              <ImpressionsChart
-                data={displayData}
-                allData={filteredData}
-                periodFilter={periodFilter}
-                comparisonMode={comparisonMode}
-                showComparison={periodFilter === '7days'}
-              />
+            <div className="lg:col-span-8 flex">
+              <div className="w-full">
+                <ImpressionsChart
+                  data={displayData}
+                  allData={filteredData}
+                  periodFilter={periodFilter}
+                  comparisonMode={comparisonMode}
+                  showComparison={periodFilter === '7days'}
+                />
+              </div>
             </div>
           </div>
 
