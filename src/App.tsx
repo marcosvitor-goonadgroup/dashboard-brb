@@ -232,9 +232,9 @@ const DashboardContent = () => {
         <div className="space-y-6">
           <div>
             <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-4">
-                <h2 className="text-sm font-medium text-gray-600">Resultados</h2>
+              <h2 className="text-sm font-medium text-gray-600">Resultados</h2>
 
+              <div className="flex items-center gap-4">
                 {/* Botões de Período */}
                 <div className="flex items-center gap-2">
                   <button
@@ -242,7 +242,7 @@ const DashboardContent = () => {
                     className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                       periodFilter === '7days'
                         ? 'bg-green-600 text-white shadow-md hover:bg-green-700'
-                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                        : 'bg-white/60 backdrop-blur-md text-gray-700 border border-gray-200/50 hover:bg-white/80'
                     }`}
                   >
                     Últimos 7 dias
@@ -252,7 +252,7 @@ const DashboardContent = () => {
                     className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                       periodFilter === 'all'
                         ? 'bg-green-600 text-white shadow-md hover:bg-green-700'
-                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                        : 'bg-white/60 backdrop-blur-md text-gray-700 border border-gray-200/50 hover:bg-white/80'
                     }`}
                   >
                     Todo o período
@@ -283,8 +283,8 @@ const DashboardContent = () => {
             />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1 flex">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-4 flex">
               <CampaignList
                 campaigns={campaigns}
                 selectedCampaign={selectedCampaign}
@@ -292,7 +292,7 @@ const DashboardContent = () => {
               />
             </div>
 
-            <div className="lg:col-span-2 flex">
+            <div className="lg:col-span-8 flex">
               <ImpressionsChart
                 data={displayData}
                 allData={filteredData}
