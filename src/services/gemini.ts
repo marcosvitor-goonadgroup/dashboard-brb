@@ -79,6 +79,9 @@ const buildAnalysisPrompt = (
   const currentMetrics = aggregateByVehicle(currentWeekData);
   const previousMetrics = previousWeekData ? aggregateByVehicle(previousWeekData) : null;
 
+  console.log('Métricas Semana Atual:', currentMetrics);
+  console.log('Métricas Semana Anterior:', previousMetrics);
+
   // Data da semana atual
   const currentDate = currentWeekData.length > 0
     ? format(currentWeekData[0].date, 'dd/MM/yyyy')
@@ -109,7 +112,7 @@ const buildAnalysisPrompt = (
   });
 
   return `
-    Você é um analista de performance de mídia sênior.
+    Você é um analista de performance de mídia online sênior.
     Analise a semana iniciada em ${currentDate}.
 
     DADOS DA SEMANA:

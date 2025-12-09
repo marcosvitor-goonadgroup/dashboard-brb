@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { LineChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { ProcessedCampaignData } from '../types/campaign';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -268,7 +268,19 @@ const ImpressionsChart = ({ data, allData, periodFilter, comparisonMode = 'bench
 
       <div className="flex-1 min-h-[320px]">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData}>
+          <ComposedChart data={chartData}>
+            <defs>
+              {/* Gradiente para a área do período atual */}
+              <linearGradient id="colorCurrentPeriod" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.4}/>
+                <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.05}/>
+              </linearGradient>
+              {/* Gradiente para a área do período anterior */}
+              <linearGradient id="colorPreviousPeriod" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#fbbf24" stopOpacity={0.4}/>
+                <stop offset="95%" stopColor="#fbbf24" stopOpacity={0.05}/>
+              </linearGradient>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis
               dataKey="date"
@@ -290,43 +302,16 @@ const ImpressionsChart = ({ data, allData, periodFilter, comparisonMode = 'bench
               }}
               animationDuration={150}
             />
-            <Legend />
+            <Legend wrapperStyle={{ paddingTop: '10px' }} />
 
-            {/* Área sombreada abaixo da linha do período atual */}
-            <Area
-              type="monotone"
-              dataKey={selectedMetric}
-              fill="#0ea5e9"
-              fillOpacity={0.2}
-              stroke="none"
-              legendType="none"
-              isAnimationActive={true}
-              animationDuration={300}
-              animationEasing="ease-in-out"
-            />
-
-            {/* Linha do período atual */}
-            <Line
-              type="monotone"
-              dataKey={selectedMetric}
-              name={selectedMetricLabel}
-              stroke="#0ea5e9"
-              strokeWidth={3}
-              dot={{ fill: '#0ea5e9', r: 4 }}
-              activeDot={{ r: 6 }}
-              isAnimationActive={true}
-              animationDuration={300}
-              animationEasing="ease-in-out"
-            />
-
+            {/* Renderiza período anterior PRIMEIRO para aparecer primeiro na legenda */}
             {comparisonMode === 'previous' && showComparison && periodFilter === '7days' && (
               <>
-                {/* Área sombreada abaixo da linha do período anterior */}
+                {/* Área preenchida do período anterior */}
                 <Area
                   type="monotone"
                   dataKey={`${selectedMetric}_anterior`}
-                  fill="#fbbf24"
-                  fillOpacity={0.2}
+                  fill="url(#colorPreviousPeriod)"
                   stroke="none"
                   connectNulls={true}
                   legendType="none"
@@ -334,12 +319,10 @@ const ImpressionsChart = ({ data, allData, periodFilter, comparisonMode = 'bench
                   animationDuration={300}
                   animationEasing="ease-in-out"
                 />
-
                 {/* Linha do período anterior */}
                 <Line
                   type="monotone"
                   dataKey={`${selectedMetric}_anterior`}
-                  name={`${selectedMetricLabel} (Período Anterior)`}
                   stroke="#fbbf24"
                   strokeWidth={3}
                   strokeDasharray="5 5"
@@ -349,10 +332,36 @@ const ImpressionsChart = ({ data, allData, periodFilter, comparisonMode = 'bench
                   isAnimationActive={true}
                   animationDuration={300}
                   animationEasing="ease-in-out"
+                  name={`${selectedMetricLabel} (Período Anterior)`}
                 />
               </>
             )}
-          </LineChart>
+
+            {/* Área preenchida do período atual */}
+            <Area
+              type="monotone"
+              dataKey={selectedMetric}
+              fill="url(#colorCurrentPeriod)"
+              stroke="none"
+              legendType="none"
+              isAnimationActive={true}
+              animationDuration={300}
+              animationEasing="ease-in-out"
+            />
+            {/* Linha do período atual */}
+            <Line
+              type="monotone"
+              dataKey={selectedMetric}
+              stroke="#0ea5e9"
+              strokeWidth={3}
+              dot={{ fill: '#0ea5e9', r: 4 }}
+              activeDot={{ r: 6 }}
+              isAnimationActive={true}
+              animationDuration={300}
+              animationEasing="ease-in-out"
+              name={selectedMetricLabel}
+            />
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
     </div>

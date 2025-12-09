@@ -100,7 +100,7 @@ const BigNumbers = ({
         <p className="text-xs font-medium text-gray-500 mb-1">
           Investimento
         </p>
-        <p className="text-2xl font-bold text-blue-600">
+        <p className="text-2xl font-bold text-blue-900">
           <AnimatedNumber
             value={displayInvestment}
             formatter={formatCurrency}
@@ -108,13 +108,14 @@ const BigNumbers = ({
           />
         </p>
         {comparisonMode === 'previous' && showComparison && previousPeriodMetrics && (
-          <div className="mt-2 pt-2 border-t border-gray-100">
+          <div className="mt-2">
             <BenchmarkIndicator
               value={displayInvestment}
               benchmark={investimentoComparison.benchmark}
               format="number"
               showComparison={true}
               hidePercentageDiff={investimentoComparison.hidePercentageDiff}
+              compactMode={true}
             />
           </div>
         )}
@@ -125,7 +126,7 @@ const BigNumbers = ({
         <p className="text-xs font-medium text-gray-500 mb-1">
           Impressões
         </p>
-        <p className="text-2xl font-bold text-cyan-600">
+        <p className="text-2xl font-bold text-blue-700">
           <AnimatedNumber
             value={metrics.impressoes}
             formatter={formatNumber}
@@ -133,13 +134,14 @@ const BigNumbers = ({
           />
         </p>
         {comparisonMode === 'previous' && showComparison && previousPeriodMetrics && (
-          <div className="mt-2 pt-2 border-t border-gray-100">
+          <div className="mt-2">
             <BenchmarkIndicator
               value={metrics.impressoes}
               benchmark={impressoesComparison.benchmark}
               format="number"
               showComparison={true}
               hidePercentageDiff={impressoesComparison.hidePercentageDiff}
+              compactMode={true}
             />
           </div>
         )}
@@ -150,7 +152,7 @@ const BigNumbers = ({
         <p className="text-xs font-medium text-gray-500 mb-1">
           Views
         </p>
-        <p className="text-2xl font-bold text-blue-500">
+        <p className="text-2xl font-bold text-blue-600">
           <AnimatedNumber
             value={metrics.views}
             formatter={formatNumber}
@@ -158,7 +160,7 @@ const BigNumbers = ({
           />
         </p>
         {comparisonMode === 'previous' && showComparison && previousPeriodMetrics && (
-          <div className="mt-2 pt-2 border-t border-gray-100">
+          <div className="mt-2">
             <p className="text-xs text-gray-500 mb-1">Views</p>
             <BenchmarkIndicator
               value={metrics.views}
@@ -166,6 +168,7 @@ const BigNumbers = ({
               format="number"
               showComparison={true}
               hidePercentageDiff={viewsComparison.hidePercentageDiff}
+              compactMode={true}
             />
           </div>
         )}
@@ -186,7 +189,7 @@ const BigNumbers = ({
         <p className="text-xs font-medium text-gray-500 mb-1">
           Engajamento
         </p>
-        <p className="text-2xl font-bold text-purple-600">
+        <p className="text-2xl font-bold text-blue-500">
           <AnimatedNumber
             value={metrics.engajamento}
             formatter={formatNumber}
@@ -194,7 +197,7 @@ const BigNumbers = ({
           />
         </p>
         {comparisonMode === 'previous' && showComparison && previousPeriodMetrics && (
-          <div className="mt-2 pt-2 border-t border-gray-100">
+          <div className="mt-2">
             <p className="text-xs text-gray-500 mb-1">Engajamento</p>
             <BenchmarkIndicator
               value={metrics.engajamento}
@@ -202,6 +205,7 @@ const BigNumbers = ({
               format="number"
               showComparison={true}
               hidePercentageDiff={engajamentoComparison.hidePercentageDiff}
+              compactMode={true}
             />
           </div>
         )}
@@ -222,7 +226,7 @@ const BigNumbers = ({
         <p className="text-xs font-medium text-gray-500 mb-1">
           Cliques
         </p>
-        <p className="text-2xl font-bold text-indigo-600">
+        <p className="text-2xl font-bold text-blue-400">
           <AnimatedNumber
             value={metrics.cliques}
             formatter={formatNumber}
@@ -230,7 +234,7 @@ const BigNumbers = ({
           />
         </p>
         {comparisonMode === 'previous' && showComparison && previousPeriodMetrics && (
-          <div className="mt-2 pt-2 border-t border-gray-100">
+          <div className="mt-2">
             <p className="text-xs text-gray-500 mb-1">Cliques</p>
             <BenchmarkIndicator
               value={metrics.cliques}
@@ -238,6 +242,7 @@ const BigNumbers = ({
               format="number"
               showComparison={true}
               hidePercentageDiff={cliquesComparison.hidePercentageDiff}
+              compactMode={true}
             />
           </div>
         )}

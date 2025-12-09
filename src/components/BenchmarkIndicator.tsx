@@ -5,9 +5,10 @@ interface BenchmarkIndicatorProps {
   className?: string;
   showComparison?: boolean; // Se false, mostra apenas o valor sem comparação
   hidePercentageDiff?: boolean; // Se true, oculta a porcentagem de diferença (mostra apenas valor + seta + ref)
+  compactMode?: boolean; // Se true, não mostra o valor principal (apenas seta + porcentagem + ref)
 }
 
-const BenchmarkIndicator = ({ value, benchmark, format = 'percentage', className = '', showComparison = true, hidePercentageDiff = false }: BenchmarkIndicatorProps) => {
+const BenchmarkIndicator = ({ value, benchmark, format = 'percentage', className = '', showComparison = true, hidePercentageDiff = false, compactMode = false }: BenchmarkIndicatorProps) => {
   const isAboveBenchmark = value >= benchmark;
   const difference = value - benchmark;
   const percentageDiff = benchmark > 0 ? (difference / benchmark) * 100 : 0;
@@ -34,13 +35,16 @@ const BenchmarkIndicator = ({ value, benchmark, format = 'percentage', className
   }
 
   // Com comparação, mostra valor + setas + diferença + benchmark
+  // No modo compacto, não mostra o valor principal
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <span className={`font-semibold ${
-        isAboveBenchmark ? 'text-green-600' : 'text-red-600'
-      }`}>
-        {formattedValue}
-      </span>
+      {!compactMode && (
+        <span className={`font-semibold ${
+          isAboveBenchmark ? 'text-green-600' : 'text-red-600'
+        }`}>
+          {formattedValue}
+        </span>
+      )}
 
       <div className="flex items-center gap-1 text-xs">
         {isAboveBenchmark ? (
@@ -59,7 +63,7 @@ const BenchmarkIndicator = ({ value, benchmark, format = 'percentage', className
         )}
       </div>
 
-      <span className="text-xs text-gray-500" title="Benchmark de referência">
+      <span className="text-xs text-gray-500" title="Valor do período anterior">
         (ref: {formattedBenchmark})
       </span>
     </div>
