@@ -7,9 +7,9 @@ const API_KEY = import.meta.env.VITE_GEMINI_API;
 
 // Lista de modelos por prioridade
 const MODELS = [
-    "gemini-2.5-flash",
-    "gemini-2.5-flash-lite",
-    "gemini-robotics-er-1.5-preview"
+      "gemini-robotics-er-1.5-preview",
+      "gemini-2.5-flash-lite",
+      "gemini-2.5-flash"
 ];
 
 interface VehicleMetrics {
