@@ -284,7 +284,7 @@ const DashboardContent = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-4 flex">
+            <div className="lg:col-span-4">
               <CampaignList
                 campaigns={campaigns}
                 selectedCampaign={selectedCampaign}
@@ -292,7 +292,7 @@ const DashboardContent = () => {
               />
             </div>
 
-            <div className="lg:col-span-8 flex">
+            <div className="lg:col-span-8">
               <ImpressionsChart
                 data={displayData}
                 allData={filteredData}
