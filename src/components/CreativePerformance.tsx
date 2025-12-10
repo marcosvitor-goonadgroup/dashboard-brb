@@ -1,11 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { ProcessedCampaignData } from '../types/campaign';
-import { getBenchmarkByVehicleAndType } from '../config/benchmarks';
 import BenchmarkIndicator from './BenchmarkIndicator';
+import { fetchAllBenchmarks, BenchmarkData } from '../services/benchmarkService';
+import { subDays } from 'date-fns';
 
 interface CreativePerformanceProps {
   data: ProcessedCampaignData[];
   selectedCampaign: string | null;
+  periodFilter: '7days' | 'all';
 }
 
 interface CreativeData {
@@ -13,6 +15,7 @@ interface CreativeData {
   campanha: string;
   veiculo: string;
   tipoDeCompra: string;
+  tipoMidia: string;
   impressoes: number;
   cliques: number;
   views: number;
@@ -32,12 +35,36 @@ const formatNumber = (num: number): string => {
   return num.toFixed(0);
 };
 
-const CreativePerformance = ({ data, selectedCampaign }: CreativePerformanceProps) => {
+/**
+ * Cria chave de benchmark para busca
+ */
+const getBenchmarkKey = (veiculo: string, tipoDeCompra: string, tipoMidia: string): string => {
+  return `${veiculo.toLowerCase()}|${tipoDeCompra.toLowerCase()}|${tipoMidia.toLowerCase()}`;
+};
+
+/**
+ * Formata tipo de mídia para exibição
+ */
+const formatTipoMidia = (tipoMidia: string): string => {
+  const tipo = tipoMidia.toLowerCase();
+  if (tipo.includes('video') || tipo.includes('vídeo')) return 'Vídeo';
+  if (tipo.includes('estatico') || tipo.includes('estático')) return 'Estático';
+  if (tipo.includes('audio') || tipo.includes('áudio')) return 'Áudio';
+  return 'Estático'; // default
+};
+
+const CreativePerformance = ({ data, selectedCampaign, periodFilter }: CreativePerformanceProps) => {
   const [selectedVeiculo, setSelectedVeiculo] = useState<string>('all');
   const [selectedTipoCompra, setSelectedTipoCompra] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [benchmarks, setBenchmarks] = useState<Map<string, BenchmarkData>>(new Map());
   const itemsPerPage = 5;
+
+  // Carrega benchmarks ao montar o componente
+  useEffect(() => {
+    fetchAllBenchmarks().then(setBenchmarks);
+  }, []);
 
   // Extract unique values for filters
   const { veiculos, tiposCompra } = useMemo(() => {
@@ -62,6 +89,16 @@ const CreativePerformance = ({ data, selectedCampaign }: CreativePerformanceProp
   const creativeData = useMemo(() => {
     let filteredData = data;
 
+    // Sempre exclui o dia atual (considera apenas até D-1)
+    const yesterday = subDays(new Date(), 1);
+    filteredData = filteredData.filter(item => item.date <= yesterday);
+
+    // Apply period filter
+    if (periodFilter === '7days') {
+      const sevenDaysAgo = subDays(yesterday, 7);
+      filteredData = filteredData.filter(item => item.date >= sevenDaysAgo);
+    }
+
     // Apply filter from parent component (CampaignList selection)
     if (selectedCampaign) {
       filteredData = filteredData.filter(d => d.campanha === selectedCampaign);
@@ -83,6 +120,7 @@ const CreativePerformance = ({ data, selectedCampaign }: CreativePerformanceProp
           campanha: item.campanha,
           veiculo: item.veiculo,
           tipoDeCompra: item.tipoDeCompra,
+          tipoMidia: item.videoEstaticoAudio || 'estatico',
           impressoes: 0,
           cliques: 0,
           views: 0,
@@ -106,12 +144,13 @@ const CreativePerformance = ({ data, selectedCampaign }: CreativePerformanceProp
         const ctr = item.impressoes > 0 ? (item.cliques / item.impressoes) * 100 : 0;
         const vtr = item.impressoes > 0 ? (item.videoCompletions / item.impressoes) * 100 : 0;
         const taxaEngajamento = item.impressoes > 0 ? (item.engajamento / item.impressoes) * 100 : 0;
-       
+
         return {
           name: item.name,
           campanha: item.campanha,
           veiculo: item.veiculo,
           tipoDeCompra: item.tipoDeCompra,
+          tipoMidia: item.tipoMidia,
           impressoes: item.impressoes,
           cliques: item.cliques,
           views: item.views,
@@ -134,7 +173,7 @@ const CreativePerformance = ({ data, selectedCampaign }: CreativePerformanceProp
     }
 
     return creativesArray;
-  }, [data, selectedCampaign, selectedVeiculo, selectedTipoCompra, searchQuery]);
+  }, [data, selectedCampaign, selectedVeiculo, selectedTipoCompra, searchQuery, periodFilter]);
 
   // Pagination
   const totalPages = Math.ceil(creativeData.length / itemsPerPage);
@@ -275,7 +314,7 @@ const CreativePerformance = ({ data, selectedCampaign }: CreativePerformanceProp
                           {creative.name}
                         </div>
                         <div className="text-xs text-gray-500 truncate text-center">
-                          {creative.veiculo} • {creative.tipoDeCompra}
+                          {creative.veiculo} • {creative.tipoDeCompra} • {formatTipoMidia(creative.tipoMidia)}
                         </div>
                       </td>
                       <td className="py-3 px-4 text-center text-gray-700 border-r border-gray-200">
@@ -293,7 +332,17 @@ const CreativePerformance = ({ data, selectedCampaign }: CreativePerformanceProp
                       <td className="py-3 px-4 border-r border-gray-200">
                         <div className="flex items-center justify-center">
                           {(() => {
-                            const benchmark = getBenchmarkByVehicleAndType(creative.veiculo, creative.tipoDeCompra);
+                            // Não mostra comparação se a métrica estiver zerada
+                            if (creative.vtr === 0) {
+                              return (
+                                <span className="font-medium text-gray-700">
+                                  {creative.vtr.toFixed(2)}%
+                                </span>
+                              );
+                            }
+
+                            const benchmarkKey = getBenchmarkKey(creative.veiculo, creative.tipoDeCompra, creative.tipoMidia);
+                            const benchmark = benchmarks.get(benchmarkKey);
                             return benchmark ? (
                               <BenchmarkIndicator
                                 value={creative.vtr}
@@ -312,7 +361,17 @@ const CreativePerformance = ({ data, selectedCampaign }: CreativePerformanceProp
                       <td className="py-3 px-4 border-r border-gray-200">
                         <div className="flex items-center justify-center">
                           {(() => {
-                            const benchmark = getBenchmarkByVehicleAndType(creative.veiculo, creative.tipoDeCompra);
+                            // Não mostra comparação se a métrica estiver zerada
+                            if (creative.taxaEngajamento === 0) {
+                              return (
+                                <span className="font-medium text-gray-700">
+                                  {creative.taxaEngajamento.toFixed(2)}%
+                                </span>
+                              );
+                            }
+
+                            const benchmarkKey = getBenchmarkKey(creative.veiculo, creative.tipoDeCompra, creative.tipoMidia);
+                            const benchmark = benchmarks.get(benchmarkKey);
                             return benchmark ? (
                               <BenchmarkIndicator
                                 value={creative.taxaEngajamento}
@@ -331,7 +390,17 @@ const CreativePerformance = ({ data, selectedCampaign }: CreativePerformanceProp
                       <td className="py-3 px-4">
                         <div className="flex items-center justify-center">
                           {(() => {
-                            const benchmark = getBenchmarkByVehicleAndType(creative.veiculo, creative.tipoDeCompra);
+                            // Não mostra comparação se a métrica estiver zerada
+                            if (creative.ctr === 0) {
+                              return (
+                                <span className="font-medium text-gray-700">
+                                  {creative.ctr.toFixed(2)}%
+                                </span>
+                              );
+                            }
+
+                            const benchmarkKey = getBenchmarkKey(creative.veiculo, creative.tipoDeCompra, creative.tipoMidia);
+                            const benchmark = benchmarks.get(benchmarkKey);
                             return benchmark ? (
                               <BenchmarkIndicator
                                 value={creative.ctr}

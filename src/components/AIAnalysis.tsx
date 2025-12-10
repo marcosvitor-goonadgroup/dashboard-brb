@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { ProcessedCampaignData } from '../types/campaign';
 import { generateWeeklyAnalysis } from '../services/gemini';
+import { getAnalysisHistory, getAnalysisByDate } from '../services/cache';
+import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface AIAnalysisProps {
   data: ProcessedCampaignData[];
@@ -16,6 +19,12 @@ const AIAnalysis = ({ data, allData, periodFilter, selectedCampaign }: AIAnalysi
   const [showEditModal, setShowEditModal] = useState(false);
   const [editedAnalysis, setEditedAnalysis] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Estados para histórico
+  const [historyDates, setHistoryDates] = useState<string[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>('current');
+  const [viewMode, setViewMode] = useState<'view' | 'edit'>('edit');
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   // Referência para evitar chamadas duplicadas
   const isGeneratingRef = useRef(false);
@@ -58,7 +67,7 @@ const AIAnalysis = ({ data, allData, periodFilter, selectedCampaign }: AIAnalysi
     }
   }, [dataKey, periodFilter]);
 
-  const generateAnalysis = async () => {
+  const generateAnalysis = async (forceRefresh: boolean = false) => {
     // Previne chamadas duplicadas
     if (isGeneratingRef.current) {
       console.log('⏳ Bloqueando chamada duplicada à API');
@@ -75,11 +84,17 @@ const AIAnalysis = ({ data, allData, periodFilter, selectedCampaign }: AIAnalysi
     setError(null);
 
     try {
-      console.log('🚀 Iniciando busca/geração de análise...');
+      if (forceRefresh) {
+        console.log('🔄 Forçando nova análise (ignorando cache)...');
+      } else {
+        console.log('🚀 Iniciando busca/geração de análise...');
+      }
+
       const { analysis: result, cached, timestamp } = await generateWeeklyAnalysis(
         data,
         allData,
-        dataKey
+        dataKey,
+        forceRefresh
       );
 
       setAnalysis(result);
@@ -98,10 +113,60 @@ const AIAnalysis = ({ data, allData, periodFilter, selectedCampaign }: AIAnalysi
     }
   };
 
-  const handleRightClick = (e: React.MouseEvent) => {
+  const handleRefreshClick = () => {
+    generateAnalysis(true); // força nova análise
+  };
+
+  const handleRightClick = async (e: React.MouseEvent) => {
     e.preventDefault();
+
+    // Carrega histórico de análises
+    if (dataKey) {
+      setLoadingHistory(true);
+      try {
+        const history = await getAnalysisHistory(dataKey);
+        const dates = history.map(h => h.date).sort((a, b) => b.localeCompare(a)); // Mais recente primeiro
+        setHistoryDates(dates);
+      } catch (err) {
+        console.error('Erro ao carregar histórico:', err);
+      } finally {
+        setLoadingHistory(false);
+      }
+    }
+
+    // Abre modal no modo de edição para análise atual
     setEditedAnalysis(analysis);
+    setSelectedDate('current');
+    setViewMode('edit');
     setShowEditModal(true);
+  };
+
+  const handleDateChange = async (date: string) => {
+    setSelectedDate(date);
+
+    if (date === 'current') {
+      // Volta para a análise atual no modo de edição
+      setEditedAnalysis(analysis);
+      setViewMode('edit');
+    } else {
+      // Carrega análise histórica no modo de visualização
+      setViewMode('view');
+      setLoadingHistory(true);
+
+      try {
+        const historicalAnalysis = await getAnalysisByDate(dataKey!, date);
+        if (historicalAnalysis) {
+          setEditedAnalysis(historicalAnalysis.analysis);
+        } else {
+          setEditedAnalysis('Análise não encontrada para esta data.');
+        }
+      } catch (err) {
+        console.error('Erro ao carregar análise histórica:', err);
+        setEditedAnalysis('Erro ao carregar análise histórica.');
+      } finally {
+        setLoadingHistory(false);
+      }
+    }
   };
 
   const handleSaveEdit = async () => {
@@ -176,7 +241,7 @@ const AIAnalysis = ({ data, allData, periodFilter, selectedCampaign }: AIAnalysi
 
         {!loading && analysis && (
           <button
-            onClick={generateAnalysis}
+            onClick={handleRefreshClick}
             onContextMenu={handleRightClick}
             className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1.5"
             title="Gerar nova análise | Clique direito para editar"
@@ -338,12 +403,15 @@ const AIAnalysis = ({ data, allData, periodFilter, selectedCampaign }: AIAnalysi
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                      d={viewMode === 'edit'
+                        ? "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        : "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      }
                     />
                   </svg>
                 </div>
                 <h3 className="text-lg font-semibold text-gray-800">
-                  Editar Análise
+                  {viewMode === 'edit' ? 'Editar Análise' : 'Visualizar Análise'}
                 </h3>
               </div>
               <button
@@ -367,21 +435,56 @@ const AIAnalysis = ({ data, allData, periodFilter, selectedCampaign }: AIAnalysi
               </button>
             </div>
 
-            {/* Editor */}
+            {/* Seletor de Data */}
+            <div className="px-6 pt-4 pb-2 border-b border-gray-200 bg-gray-50">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Selecione a data da análise:
+              </label>
+              <select
+                value={selectedDate}
+                onChange={(e) => handleDateChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                disabled={loadingHistory}
+              >
+                <option value="current">Análise Atual (Editar)</option>
+                {historyDates.length > 0 && (
+                  <optgroup label="Análises Anteriores (Somente Visualização)">
+                    {historyDates.map((date) => (
+                      <option key={date} value={date}>
+                        {format(parseISO(date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+              </select>
+              {loadingHistory && (
+                <p className="text-xs text-gray-500 mt-1">Carregando análise...</p>
+              )}
+            </div>
+
+            {/* Editor/Visualizador */}
             <div className="flex-1 p-6 overflow-y-auto">
               <textarea
                 value={editedAnalysis}
                 onChange={(e) => setEditedAnalysis(e.target.value)}
-                className="w-full h-full min-h-[300px] p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none font-sans text-sm leading-relaxed"
-                placeholder="Digite sua análise aqui..."
-                disabled={saving}
+                className={`w-full h-full min-h-[300px] p-4 border rounded-lg resize-none font-sans text-sm leading-relaxed ${
+                  viewMode === 'view'
+                    ? 'bg-gray-50 border-gray-200 cursor-default'
+                    : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                }`}
+                placeholder={viewMode === 'edit' ? 'Digite sua análise aqui...' : 'Visualizando análise histórica...'}
+                disabled={saving || viewMode === 'view'}
+                readOnly={viewMode === 'view'}
               />
             </div>
 
             {/* Footer */}
             <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
               <p className="text-sm text-gray-500">
-                A análise editada será salva no cache
+                {viewMode === 'edit'
+                  ? 'A análise editada será salva no cache'
+                  : 'Visualizando análise histórica (somente leitura)'
+                }
               </p>
               <div className="flex items-center gap-3">
                 <button
@@ -389,37 +492,39 @@ const AIAnalysis = ({ data, allData, periodFilter, selectedCampaign }: AIAnalysi
                   disabled={saving}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Cancelar
+                  {viewMode === 'edit' ? 'Cancelar' : 'Fechar'}
                 </button>
-                <button
-                  onClick={handleSaveEdit}
-                  disabled={saving || !editedAnalysis.trim()}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {saving ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      Salvando...
-                    </>
-                  ) : (
-                    <>
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      Salvar
-                    </>
-                  )}
-                </button>
+                {viewMode === 'edit' && (
+                  <button
+                    onClick={handleSaveEdit}
+                    disabled={saving || !editedAnalysis.trim()}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {saving ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        Salvar
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           </div>

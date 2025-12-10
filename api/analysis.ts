@@ -4,6 +4,13 @@ import { Redis } from 'ioredis';
 interface AnalysisRequest {
   dataKey: string;
   analysis?: string;
+  date?: string;
+}
+
+interface HistoryEntry {
+  date: string;
+  analysis: string;
+  timestamp: string;
 }
 
 // Cria cliente Redis usando ioredis para Redis Labs
@@ -26,6 +33,43 @@ export default async function handler(
   try {
     console.log('📥 Request recebida:', req.method, req.url);
 
+    // Verifica se é uma requisição de histórico
+    if (req.method === 'GET' && req.url?.includes('/history')) {
+      const dataKey = req.query.dataKey as string;
+
+      if (!dataKey) {
+        console.error('❌ dataKey não fornecido para histórico');
+        return res.status(400).json({ error: 'dataKey é obrigatório' });
+      }
+
+      console.log('📚 Buscando histórico para:', dataKey);
+
+      // Busca análises dos últimos 30 dias
+      const history: HistoryEntry[] = [];
+      const today = new Date();
+
+      for (let i = 0; i < 30; i++) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        const cacheKey = `analysis:${dateStr}:${dataKey}`;
+
+        const cached = await redis.get(cacheKey);
+        const timestamp = await redis.get(`${cacheKey}:timestamp`);
+
+        if (cached) {
+          history.push({
+            date: dateStr,
+            analysis: cached,
+            timestamp: timestamp || new Date(date).toISOString()
+          });
+        }
+      }
+
+      console.log('✅ Histórico encontrado:', history.length, 'entradas');
+      return res.status(200).json(history);
+    }
+
     // Para GET, dataKey vem dos query params
     const dataKey = req.method === 'GET'
       ? (req.query.dataKey as string)
@@ -35,15 +79,21 @@ export default async function handler(
       ? (req.body as AnalysisRequest).analysis
       : undefined;
 
-    console.log('🔑 DataKey:', dataKey);
+    // Suporte para buscar por data específica
+    const requestDate = req.method === 'GET'
+      ? (req.query.date as string)
+      : undefined;
+
+    console.log('🔑 DataKey:', dataKey, 'Date:', requestDate || 'hoje');
 
     if (!dataKey) {
       console.error('❌ dataKey não fornecido');
       return res.status(400).json({ error: 'dataKey é obrigatório' });
     }
 
-    const today = new Date().toISOString().split('T')[0];
-    const cacheKey = `analysis:${today}:${dataKey}`;
+    // Define a data (usa a data especificada ou hoje)
+    const targetDate = requestDate || new Date().toISOString().split('T')[0];
+    const cacheKey = `analysis:${targetDate}:${dataKey}`;
 
     // GET - Buscar análise do cache
     if (req.method === 'GET' || !analysis) {
@@ -74,9 +124,9 @@ export default async function handler(
     if (req.method === 'POST' && analysis) {
       const timestamp = new Date().toISOString();
 
-      // Salva por 24 horas (86400 segundos)
-      await redis.set(cacheKey, analysis, 'EX', 86400);
-      await redis.set(`${cacheKey}:timestamp`, timestamp, 'EX', 86400);
+      // Salva por 30 dias (2592000 segundos)
+      await redis.set(cacheKey, analysis, 'EX', 2592000);
+      await redis.set(`${cacheKey}:timestamp`, timestamp, 'EX', 2592000);
 
       console.log('💾 Cache SAVED:', cacheKey);
 

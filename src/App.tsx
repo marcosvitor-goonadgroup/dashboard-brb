@@ -327,7 +327,11 @@ const DashboardContent = () => {
           </div>
 
           <div>
-            <CreativePerformance data={filteredData} selectedCampaign={selectedCampaign} />
+            <CreativePerformance
+              data={filteredData}
+              selectedCampaign={selectedCampaign}
+              periodFilter={periodFilter}
+            />
           </div>
 
           {!loadingSearchTerms && searchTermsData.length > 0 && (
