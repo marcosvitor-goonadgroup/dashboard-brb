@@ -32,6 +32,9 @@
     "ioredis": "^5.8.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "recharts": "^3.5.1"
+    "react-tsparticles": "^2.12.2",
+    "recharts": "^3.5.1",
+    "tsparticles": "^3.9.1",
+    "tsparticles-slim": "^2.12.0"
   }
 }

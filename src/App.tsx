@@ -11,6 +11,7 @@ import SearchTermsAnalysis from './components/SearchTermsAnalysis';
 import ComparisonToggle from './components/ComparisonToggle';
 import AIAnalysis from './components/AIAnalysis';
 import CreativeAnalysis from './components/CreativeAnalysis';
+import ParticlesBackground from './components/ParticlesBackground';
 import { fetchSearchTermsData } from './services/api';
 import { ProcessedSearchData } from './types/campaign';
 import { subDays } from 'date-fns';
@@ -225,9 +226,11 @@ const DashboardContent = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header onOpenFilters={() => setIsFiltersOpen(true)} activeFiltersCount={activeFiltersCount} />
-      <Filters isOpen={isFiltersOpen} onClose={() => setIsFiltersOpen(false)} />
+    <div className="min-h-screen bg-gray-50 relative">
+      <ParticlesBackground />
+      <div className="relative z-10">
+        <Header onOpenFilters={() => setIsFiltersOpen(true)} activeFiltersCount={activeFiltersCount} />
+        <Filters isOpen={isFiltersOpen} onClose={() => setIsFiltersOpen(false)} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-6">
@@ -355,6 +358,7 @@ const DashboardContent = () => {
           )}
         </div>
       </main>
+      </div>
     </div>
   );
 };

@@ -4,6 +4,7 @@ import { generateCreativeAnalysis } from '../services/gemini';
 import { getAnalysisHistory, getAnalysisByDate } from '../services/cache';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import ShinyText from './ShinyText';
 
 interface CreativeAnalysisProps {
   data: ProcessedCampaignData[];
@@ -265,15 +266,12 @@ const CreativeAnalysis = ({ data, periodFilter, selectedCampaign }: CreativeAnal
       <div className="mt-4">
         {loading && (
           <div className="flex items-center justify-center py-8">
-            <div className="flex flex-col items-center gap-3">
-              <div className="relative">
-                <div className="w-12 h-12 border-4 border-green-200 rounded-full"></div>
-                <div className="w-12 h-12 border-4 border-green-600 rounded-full animate-spin border-t-transparent absolute top-0"></div>
-              </div>
-              <p className="text-sm text-gray-600 font-medium">
-                Analisando performance dos criativos...
-              </p>
-            </div>
+            <ShinyText
+              text="Analisando..."
+              disabled={false}
+              speed={2}
+              className="text-2xl font-bold"
+            />
           </div>
         )}
 

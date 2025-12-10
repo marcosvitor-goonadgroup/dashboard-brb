@@ -89,17 +89,9 @@ const SearchTermsAnalysis = ({ data, selectedCampaign, periodFilter }: SearchTer
   const maxClicks = topTermsByClicks.length > 0 ? topTermsByClicks[0].clicks : 1;
   const minClicksInCloud = topTermsByClicks.length > 0 ? topTermsByClicks[topTermsByClicks.length - 1].clicks : 0;
 
+  // Não renderiza o componente se não houver dados
   if (aggregatedTerms.length === 0) {
-    return (
-      <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">
-          Termos de Busca - Google Search
-        </h2>
-        <div className="py-12 text-center text-gray-500">
-          Nenhum dado de termos de busca disponível
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
