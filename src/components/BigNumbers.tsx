@@ -1,6 +1,7 @@
 import { CampaignMetrics, Filters } from '../types/campaign';
 import BenchmarkIndicator from './BenchmarkIndicator';
 import AnimatedNumber from './AnimatedNumber';
+import MetricThermometer from './MetricThermometer';
 
 interface BigNumbersProps {
   metrics: CampaignMetrics;
@@ -181,6 +182,13 @@ const BigNumbers = ({
             showComparison={showComparison}
             hidePercentageDiff={vtrComparison.hidePercentageDiff}
           />
+          {showComparison && periodFilter === '7days' && (
+            <MetricThermometer
+              currentValue={metrics.vtr}
+              benchmarkValue={vtrComparison.benchmark}
+              metricName="VTR"
+            />
+          )}
         </div>
       </div>
 
@@ -218,6 +226,13 @@ const BigNumbers = ({
             showComparison={showComparison}
             hidePercentageDiff={taxaEngajamentoComparison.hidePercentageDiff}
           />
+          {showComparison && periodFilter === '7days' && (
+            <MetricThermometer
+              currentValue={metrics.taxaEngajamento}
+              benchmarkValue={taxaEngajamentoComparison.benchmark}
+              metricName="Taxa Engajamento"
+            />
+          )}
         </div>
       </div>
 
@@ -255,6 +270,13 @@ const BigNumbers = ({
             showComparison={showComparison}
             hidePercentageDiff={ctrComparison.hidePercentageDiff}
           />
+          {showComparison && periodFilter === '7days' && (
+            <MetricThermometer
+              currentValue={metrics.ctr}
+              benchmarkValue={ctrComparison.benchmark}
+              metricName="CTR"
+            />
+          )}
         </div>
       </div>
     </div>
