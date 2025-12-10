@@ -10,6 +10,7 @@ import CreativePerformance from './components/CreativePerformance';
 import SearchTermsAnalysis from './components/SearchTermsAnalysis';
 import ComparisonToggle from './components/ComparisonToggle';
 import AIAnalysis from './components/AIAnalysis';
+import CreativeAnalysis from './components/CreativeAnalysis';
 import { fetchSearchTermsData } from './services/api';
 import { ProcessedSearchData } from './types/campaign';
 import { subDays } from 'date-fns';
@@ -325,12 +326,21 @@ const DashboardContent = () => {
               selectedCampaign={selectedCampaign}
             />
           </div>
+         
 
           <div>
             <CreativePerformance
               data={filteredData}
               selectedCampaign={selectedCampaign}
               periodFilter={periodFilter}
+            />
+          </div>
+
+          <div>
+            <CreativeAnalysis
+              data={displayData}
+              periodFilter={periodFilter}
+              selectedCampaign={selectedCampaign}
             />
           </div>
 

@@ -425,3 +425,259 @@ export const generateWeeklyAnalysis = async (
     throw new Error(error.message || 'Erro ao gerar análise');
   }
 };
+
+/**
+ * Interface para dados de criativos agregados
+ */
+interface CreativeMetrics {
+  creative: string;
+  campanha: string;
+  veiculo: string;
+  tipoDeCompra: string;
+  tipoMidia: string;
+  impressoes: number;
+  cliques: number;
+  views100: number;
+  engajamentos: number;
+  ctr: number;
+  vtr: number;
+  taxaEngajamento: number;
+}
+
+interface CampaignCreatives {
+  campanha: string;
+  totalImpressoes: number;
+  creativos: CreativeMetrics[];
+}
+
+/**
+ * Agrupa dados por campanha e depois por criativo
+ */
+const aggregateByCreative = (data: ProcessedCampaignData[]): CampaignCreatives[] => {
+  const campaignMap = new Map<string, CampaignCreatives>();
+
+  data.forEach(item => {
+    const campanha = item.campanha || 'Sem campanha';
+    const creative = item.adName || 'Sem nome';
+
+    // Cria campanha se não existir
+    if (!campaignMap.has(campanha)) {
+      campaignMap.set(campanha, {
+        campanha,
+        totalImpressoes: 0,
+        creativos: []
+      });
+    }
+
+    const campaign = campaignMap.get(campanha)!;
+    campaign.totalImpressoes += item.impressions;
+
+    // Busca ou cria criativo
+    let creativeMetrics = campaign.creativos.find(
+      c => c.creative === creative && c.veiculo === item.veiculo && c.tipoDeCompra === item.tipoDeCompra
+    );
+
+    if (!creativeMetrics) {
+      creativeMetrics = {
+        creative,
+        campanha,
+        veiculo: item.veiculo,
+        tipoDeCompra: item.tipoDeCompra,
+        tipoMidia: item.videoEstaticoAudio || 'estatico',
+        impressoes: 0,
+        cliques: 0,
+        views100: 0,
+        engajamentos: 0,
+        ctr: 0,
+        vtr: 0,
+        taxaEngajamento: 0
+      };
+      campaign.creativos.push(creativeMetrics);
+    }
+
+    creativeMetrics.impressoes += item.impressions;
+    creativeMetrics.cliques += item.clicks;
+    creativeMetrics.views100 += item.videoCompletions;
+    creativeMetrics.engajamentos += item.totalEngagements;
+  });
+
+  // Calcula métricas percentuais
+  campaignMap.forEach(campaign => {
+    campaign.creativos.forEach(creative => {
+      if (creative.impressoes > 0) {
+        creative.ctr = (creative.cliques / creative.impressoes) * 100;
+        creative.vtr = (creative.views100 / creative.impressoes) * 100;
+        creative.taxaEngajamento = (creative.engajamentos / creative.impressoes) * 100;
+      }
+    });
+
+    // Ordena criativos por impressões (maior para menor)
+    campaign.creativos.sort((a, b) => b.impressoes - a.impressoes);
+  });
+
+  // Retorna campanhas ordenadas por impressões
+  return Array.from(campaignMap.values())
+    .sort((a, b) => b.totalImpressoes - a.totalImpressoes);
+};
+
+/**
+ * Monta o prompt para análise de criativos
+ */
+const buildCreativeAnalysisPrompt = async (
+  currentWeekData: ProcessedCampaignData[]
+): Promise<string> => {
+  const campaigns = aggregateByCreative(currentWeekData);
+
+  // Importa o serviço de benchmark dinâmico
+  const { fetchAllBenchmarks } = await import('./benchmarkService');
+  const benchmarksMap = await fetchAllBenchmarks();
+
+  console.log('Métricas por Criativos:', JSON.stringify(campaigns, null, 2));
+
+  // Data da semana atual
+  const currentDate = currentWeekData.length > 0
+    ? format(currentWeekData[0].date, 'dd/MM/yyyy')
+    : format(new Date(), 'dd/MM/yyyy');
+
+  let textoDados = ``;
+
+  // Itera por cada campanha
+  campaigns.forEach(campaign => {
+    const { campanha, totalImpressoes, creativos } = campaign;
+
+    textoDados += `
+
+📊 CAMPANHA: ${campanha} (${formatNumber(totalImpressoes)} impressões totais)
+
+   Top Criativos:`;
+
+    // Pega os top 5 criativos por impressões
+    const topCreatives = creativos.slice(0, 5);
+
+    topCreatives.forEach((creative, index) => {
+      const { creative: name, veiculo, tipoDeCompra, tipoMidia, ctr, vtr, taxaEngajamento, impressoes } = creative;
+
+      // Buscar benchmark dinâmico
+      const benchmarkKey = `${veiculo.toLowerCase()}|${tipoDeCompra.toLowerCase()}|${tipoMidia.toLowerCase()}`;
+      const benchmark = benchmarksMap.get(benchmarkKey);
+
+      const vBenchCtr = benchmark?.ctr ?? 0;
+      const vBenchVtr = benchmark?.vtr ?? 0;
+      const vBenchEng = benchmark?.taxaEngajamento ?? 0;
+
+      // IGNORA métricas zeradas
+      const metricsText: string[] = [];
+      if (ctr > 0) metricsText.push(`CTR ${ctr.toFixed(2)}%`);
+      if (vtr > 0) metricsText.push(`VTR ${vtr.toFixed(2)}%`);
+      if (taxaEngajamento > 0) metricsText.push(`Engajamento ${taxaEngajamento.toFixed(2)}%`);
+
+      const benchText: string[] = [];
+      if (ctr > 0) benchText.push(`CTR ${vBenchCtr.toFixed(2)}%`);
+      if (vtr > 0) benchText.push(`VTR ${vBenchVtr.toFixed(2)}%`);
+      if (taxaEngajamento > 0) benchText.push(`Engajamento ${vBenchEng.toFixed(2)}%`);
+
+      const performanceText: string[] = [];
+      if (ctr > 0 && vBenchCtr > 0) {
+        const diff = ctr - vBenchCtr;
+        performanceText.push(`CTR ${diff > 0 ? 'acima' : 'abaixo'} em ${Math.abs(diff).toFixed(2)}pp`);
+      }
+      if (vtr > 0 && vBenchVtr > 0) {
+        const diff = vtr - vBenchVtr;
+        performanceText.push(`VTR ${diff > 0 ? 'acima' : 'abaixo'} em ${Math.abs(diff).toFixed(2)}pp`);
+      }
+      if (taxaEngajamento > 0 && vBenchEng > 0) {
+        const diff = taxaEngajamento - vBenchEng;
+        performanceText.push(`Engajamento ${diff > 0 ? 'acima' : 'abaixo'} em ${Math.abs(diff).toFixed(2)}pp`);
+      }
+
+      textoDados += `
+      ${index + 1}. ${name}
+         Veículo: ${veiculo} (${tipoDeCompra}) | Tipo: ${tipoMidia}
+         Impressões: ${formatNumber(impressoes)}
+         Métricas: ${metricsText.join(', ')}
+         Benchmark: ${benchText.join(', ')}
+         Performance: ${performanceText.join(', ')}`;
+    });
+  });
+
+  return `
+Você é um analista de performance de criativos de mídia online.
+Analise os criativos da semana iniciada em ${currentDate}.
+
+DADOS:
+${textoDados}
+
+REGRAS IMPORTANTES:
+1. NÃO analise métricas zeradas (0.00%)
+2. Compare cada criativo com seu BENCHMARK ESPECÍFICO (por veículo + tipo de compra + tipo de mídia)
+3. Identifique padrões de performance (ex: criativos de vídeo performam melhor que estáticos)
+4. Destaque os destaques positivos E negativos
+
+FORMATO DA RESPOSTA (UM ÚNICO PARÁGRAFO):
+
+Analise os criativos por campanha. Para cada campanha, identifique os criativos destaque (melhor e pior performance vs benchmark). Mencione explicitamente o nome dos criativos, suas métricas e quanto estão acima/abaixo do benchmark. Identifique padrões claros (ex: todos os criativos de vídeo no Instagram estão acima do benchmark, mas os estáticos no Facebook estão abaixo).
+
+IMPORTANTE:
+- Seja direto e factual
+- NÃO dê sugestões ou recomendações
+- Foque na LEITURA do que está acontecendo
+- Use português profissional
+- Cite nomes específicos dos criativos
+- Máximo 1 parágrafo denso e informativo
+  `;
+};
+
+/**
+ * Gera análise de criativos usando IA (com cache)
+ * @param forceRefresh Se true, ignora o cache e gera uma nova análise
+ */
+export const generateCreativeAnalysis = async (
+  currentWeekData: ProcessedCampaignData[],
+  dataKey: string,
+  forceRefresh: boolean = false
+): Promise<{ analysis: string; cached: boolean; timestamp: string }> => {
+  try {
+    if (currentWeekData.length === 0) {
+      return {
+        analysis: 'Não há dados disponíveis para análise de criativos desta semana.',
+        cached: false,
+        timestamp: new Date().toISOString()
+      };
+    }
+
+    // Importa o serviço de cache dinamicamente
+    const { getCachedAnalysis, setCachedAnalysis } = await import('./cache');
+
+    // 1. Tenta buscar do cache (se não for refresh forçado)
+    if (!forceRefresh) {
+      const cached = await getCachedAnalysis(dataKey);
+      if (cached) {
+        return cached;
+      }
+    } else {
+      console.log('🔄 Forçando nova análise de criativos (ignorando cache)...');
+    }
+
+    // 2. Se não encontrou no cache ou foi forçado refresh, gera nova análise
+    console.log('🔄 Gerando nova análise de criativos...');
+
+    // Monta o prompt
+    const prompt = await buildCreativeAnalysisPrompt(currentWeekData);
+
+    // Chama a API
+    const analysis = await callGeminiAPI(prompt);
+
+    // 3. Salva no cache
+    await setCachedAnalysis(dataKey, analysis);
+
+    return {
+      analysis,
+      cached: false,
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error: any) {
+    console.error('Erro ao gerar análise de criativos:', error);
+    throw new Error(error.message || 'Erro ao gerar análise de criativos');
+  }
+};
