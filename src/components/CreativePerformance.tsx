@@ -1,7 +1,13 @@
 import { useMemo, useState, useEffect } from 'react';
 import { ProcessedCampaignData } from '../types/campaign';
 import BenchmarkIndicator from './BenchmarkIndicator';
+import CreativeImage from './CreativeImage';
 import { fetchAllBenchmarks, BenchmarkData } from '../services/benchmarkService';
+import {
+  initializeImageCache,
+  getCreativeImageUrl,
+  isCacheInitialized
+} from '../services/creativeImageService';
 import { subDays } from 'date-fns';
 
 interface CreativePerformanceProps {
@@ -64,6 +70,17 @@ const CreativePerformance = ({ data, selectedCampaign, periodFilter }: CreativeP
   // Carrega benchmarks ao montar o componente
   useEffect(() => {
     fetchAllBenchmarks().then(setBenchmarks);
+  }, []);
+
+  // Inicializa cache de imagens ao montar o componente
+  useEffect(() => {
+    const loadImages = async () => {
+      if (!isCacheInitialized()) {
+        await initializeImageCache();
+      }
+    };
+
+    loadImages();
   }, []);
 
   // Extract unique values for filters
@@ -277,6 +294,9 @@ const CreativePerformance = ({ data, selectedCampaign, periodFilter }: CreativeP
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-gray-50 z-10">
                   <tr className="border-b border-gray-200">
+                    <th className="text-center py-3 px-4 font-semibold text-gray-700 border-r border-gray-200 w-20">
+                      Preview
+                    </th>
                     <th className="text-center py-3 px-4 font-semibold text-gray-700 border-r border-gray-200">
                       Criativo
                     </th>
@@ -304,19 +324,31 @@ const CreativePerformance = ({ data, selectedCampaign, periodFilter }: CreativeP
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 bg-white">
-                  {paginatedData.map((creative, index) => (
-                    <tr
-                      key={`${creative.name}-${index}`}
-                      className="hover:bg-blue-50 transition-colors"
-                    >
-                      <td className="py-3 px-4 max-w-xs border-r border-gray-200">
-                        <div className="font-medium text-gray-900 truncate text-center">
-                          {creative.name}
-                        </div>
-                        <div className="text-xs text-gray-500 truncate text-center">
-                          {creative.veiculo} • {creative.tipoDeCompra} • {formatTipoMidia(creative.tipoMidia)}
-                        </div>
-                      </td>
+                  {paginatedData.map((creative, index) => {
+                    const imageUrl = getCreativeImageUrl(creative.name);
+
+                    return (
+                      <tr
+                        key={`${creative.name}-${index}`}
+                        className="hover:bg-blue-50 transition-colors"
+                      >
+                        <td className="py-3 px-4 border-r border-gray-200">
+                          <div className="flex items-center justify-center">
+                            <CreativeImage
+                              imageUrl={imageUrl}
+                              creativeName={creative.name}
+                              size="small"
+                            />
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 max-w-xs border-r border-gray-200">
+                          <div className="font-medium text-gray-900 truncate text-center">
+                            {creative.name}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate text-center">
+                            {creative.veiculo} • {creative.tipoDeCompra} • {formatTipoMidia(creative.tipoMidia)}
+                          </div>
+                        </td>
                       <td className="py-3 px-4 text-center text-gray-700 border-r border-gray-200">
                         {formatNumber(creative.impressoes)}
                       </td>
@@ -417,7 +449,8 @@ const CreativePerformance = ({ data, selectedCampaign, periodFilter }: CreativeP
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
