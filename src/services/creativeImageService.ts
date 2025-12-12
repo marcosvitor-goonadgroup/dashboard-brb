@@ -25,6 +25,8 @@ interface FolderResponse {
  */
 const imageCache = new Map<string, string>();
 const debugMapping = new Map<string, string>(); // Para debug: nome original -> nome normalizado
+const videoCache = new Map<string, string>(); // Cache para URLs de vídeos
+const carouselCache = new Map<string, DriveFile[]>(); // Cache para arquivos de carrossel
 let cacheInitialized = false;
 
 /**
@@ -98,6 +100,13 @@ const getThumbnailUrl = (fileId: string): string => {
 };
 
 /**
+ * Converte ID do arquivo para URL de preview do Google Drive
+ */
+const getPreviewUrl = (fileId: string): string => {
+  return `https://drive.google.com/file/d/${fileId}/preview`;
+};
+
+/**
  * Processa arquivos de uma pasta de plataforma (META, LINKEDIN, etc.)
  * Retorna mapeamento de nome normalizado para URL da imagem
  */
@@ -114,29 +123,43 @@ const processPlatformFolder = async (
       if (file.mimeType === 'application/vnd.google-apps.folder') {
         const carouselFiles = await getFolderFiles(file.id);
 
-        // Pega o primeiro arquivo de imagem ou vídeo do carrossel
-        const firstMedia = carouselFiles.find(f =>
+        // Filtra apenas arquivos de mídia (imagens e vídeos)
+        const mediaFiles = carouselFiles.filter(f =>
           f.mimeType.startsWith('image/') || f.mimeType.startsWith('video/')
         );
 
-        if (firstMedia) {
+        if (mediaFiles.length > 0) {
           const normalizedName = normalizeCreativeName(file.name);
+          const firstMedia = mediaFiles[0];
           const thumbnailUrl = getThumbnailUrl(firstMedia.id);
+
           mapping.set(normalizedName, thumbnailUrl);
           debugMapping.set(file.name, normalizedName);
+          carouselCache.set(normalizedName, mediaFiles); // Armazena todos os arquivos do carrossel
 
-          console.log(`📁 Carrossel mapeado: "${file.name}" → "${normalizedName}"`);
+          console.log(`📁 Carrossel mapeado: "${file.name}" → "${normalizedName}" (${mediaFiles.length} itens)`);
         }
       }
-      // Se for um arquivo de imagem ou vídeo direto
-      else if (file.mimeType.startsWith('image/') || file.mimeType.startsWith('video/')) {
+      // Se for um arquivo de vídeo
+      else if (file.mimeType.startsWith('video/')) {
+        const normalizedName = normalizeCreativeName(file.name);
+        const thumbnailUrl = getThumbnailUrl(file.id);
+        const videoUrl = getPreviewUrl(file.id);
+
+        mapping.set(normalizedName, thumbnailUrl);
+        debugMapping.set(file.name, normalizedName);
+        videoCache.set(normalizedName, videoUrl); // Armazena URL do vídeo
+
+        console.log(`🎥 Vídeo mapeado: "${file.name}" → "${normalizedName}"`);
+      }
+      // Se for um arquivo de imagem
+      else if (file.mimeType.startsWith('image/')) {
         const normalizedName = normalizeCreativeName(file.name);
         const thumbnailUrl = getThumbnailUrl(file.id);
         mapping.set(normalizedName, thumbnailUrl);
         debugMapping.set(file.name, normalizedName);
 
-        const mediaType = file.mimeType.startsWith('image/') ? '🖼️' : '🎥';
-        console.log(`${mediaType} Arquivo mapeado: "${file.name}" → "${normalizedName}"`);
+        console.log(`🖼️ Imagem mapeada: "${file.name}" → "${normalizedName}"`);
       }
     }
   } catch (error) {
@@ -293,4 +316,64 @@ export const getCacheKeys = (): string[] => {
  */
 export const getDebugMapping = (): Map<string, string> => {
   return new Map(debugMapping);
+};
+
+/**
+ * Busca a URL do vídeo de um criativo pelo nome
+ * @param creativeName Nome do criativo
+ * @returns URL do vídeo ou null se não for um vídeo
+ */
+export const getCreativeVideoUrl = (creativeName: string): string | null => {
+  const normalizedName = normalizeCreativeName(creativeName);
+  let url = videoCache.get(normalizedName);
+
+  if (url) {
+    return url;
+  }
+
+  // Busca parcial
+  for (const [cachedKey, cachedUrl] of videoCache.entries()) {
+    if (normalizedName.includes(cachedKey) || cachedKey.includes(normalizedName)) {
+      return cachedUrl;
+    }
+  }
+
+  return null;
+};
+
+/**
+ * Busca os arquivos de um carrossel pelo nome do criativo
+ * @param creativeName Nome do criativo
+ * @returns Array de arquivos do carrossel ou null se não for um carrossel
+ */
+export const getCreativeCarouselFiles = (creativeName: string): DriveFile[] | null => {
+  const normalizedName = normalizeCreativeName(creativeName);
+  let files = carouselCache.get(normalizedName);
+
+  if (files) {
+    return files;
+  }
+
+  // Busca parcial
+  for (const [cachedKey, cachedFiles] of carouselCache.entries()) {
+    if (normalizedName.includes(cachedKey) || cachedKey.includes(normalizedName)) {
+      return cachedFiles;
+    }
+  }
+
+  return null;
+};
+
+/**
+ * Verifica se um criativo é um vídeo
+ */
+export const isCreativeVideo = (creativeName: string): boolean => {
+  return getCreativeVideoUrl(creativeName) !== null;
+};
+
+/**
+ * Verifica se um criativo é um carrossel
+ */
+export const isCreativeCarousel = (creativeName: string): boolean => {
+  return getCreativeCarouselFiles(creativeName) !== null;
 };

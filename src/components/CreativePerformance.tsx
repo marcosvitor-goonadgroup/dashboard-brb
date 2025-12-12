@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { ProcessedCampaignData } from '../types/campaign';
 import BenchmarkIndicator from './BenchmarkIndicator';
 import CreativeImage from './CreativeImage';
+import CreativeDetailModal from './CreativeDetailModal';
 import { fetchAllBenchmarks, BenchmarkData } from '../services/benchmarkService';
 import {
   initializeImageCache,
@@ -59,12 +60,19 @@ const formatTipoMidia = (tipoMidia: string): string => {
   return 'Estático'; // default
 };
 
+type SortField = 'name' | 'impressoes' | 'views' | 'engajamento' | 'cliques' | 'vtr' | 'taxaEngajamento' | 'ctr';
+type SortDirection = 'asc' | 'desc';
+
 const CreativePerformance = ({ data, selectedCampaign, periodFilter }: CreativePerformanceProps) => {
   const [selectedVeiculo, setSelectedVeiculo] = useState<string>('all');
   const [selectedTipoCompra, setSelectedTipoCompra] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [benchmarks, setBenchmarks] = useState<Map<string, BenchmarkData>>(new Map());
+  const [imagesReady, setImagesReady] = useState<boolean>(false);
+  const [sortField, setSortField] = useState<SortField>('impressoes');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [selectedCreative, setSelectedCreative] = useState<string | null>(null);
   const itemsPerPage = 5;
 
   // Carrega benchmarks ao montar o componente
@@ -75,13 +83,32 @@ const CreativePerformance = ({ data, selectedCampaign, periodFilter }: CreativeP
   // Inicializa cache de imagens ao montar o componente
   useEffect(() => {
     const loadImages = async () => {
+      setImagesReady(false);
+
       if (!isCacheInitialized()) {
+        console.log('🔄 Iniciando carregamento de imagens...');
         await initializeImageCache();
+        console.log('✅ Cache de imagens carregado!');
       }
+
+      setImagesReady(true);
     };
 
     loadImages();
   }, []);
+
+  // Handler para ordenação
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // Se já está ordenando por este campo, inverte a direção
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Se é um novo campo, começa com descendente (maior para menor)
+      setSortField(field);
+      setSortDirection('desc');
+    }
+    setCurrentPage(1); // Volta para primeira página ao ordenar
+  };
 
   // Extract unique values for filters
   const { veiculos, tiposCompra } = useMemo(() => {
@@ -176,8 +203,31 @@ const CreativePerformance = ({ data, selectedCampaign, periodFilter }: CreativeP
           vtr,
           taxaEngajamento
         };
-      })
-      .sort((a, b) => b.impressoes - a.impressoes) as CreativeData[];
+      }) as CreativeData[];
+
+    // Apply sorting
+    creativesArray.sort((a, b) => {
+      let valueA = a[sortField];
+      let valueB = b[sortField];
+
+      // Para ordenação alfabética (nome)
+      if (sortField === 'name') {
+        valueA = valueA.toString().toLowerCase();
+        valueB = valueB.toString().toLowerCase();
+
+        if (sortDirection === 'asc') {
+          return valueA < valueB ? -1 : valueA > valueB ? 1 : 0;
+        } else {
+          return valueA > valueB ? -1 : valueA < valueB ? 1 : 0;
+        }
+      }
+
+      // Para ordenação numérica
+      const numA = typeof valueA === 'number' ? valueA : 0;
+      const numB = typeof valueB === 'number' ? valueB : 0;
+
+      return sortDirection === 'asc' ? numA - numB : numB - numA;
+    });
 
     // Apply search filter
     if (searchQuery.trim()) {
@@ -190,7 +240,7 @@ const CreativePerformance = ({ data, selectedCampaign, periodFilter }: CreativeP
     }
 
     return creativesArray;
-  }, [data, selectedCampaign, selectedVeiculo, selectedTipoCompra, searchQuery, periodFilter]);
+  }, [data, selectedCampaign, selectedVeiculo, selectedTipoCompra, searchQuery, periodFilter, sortField, sortDirection]);
 
   // Pagination
   const totalPages = Math.ceil(creativeData.length / itemsPerPage);
@@ -203,6 +253,29 @@ const CreativePerformance = ({ data, selectedCampaign, periodFilter }: CreativeP
   useMemo(() => {
     setCurrentPage(1);
   }, [selectedVeiculo, selectedTipoCompra, searchQuery, selectedCampaign]);
+
+  // Componente para header ordenável
+  const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
+    <th
+      onClick={() => handleSort(field)}
+      className="text-center py-3 px-4 font-semibold text-gray-700 border-r border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors select-none"
+    >
+      <div className="flex items-center justify-center gap-1">
+        <span>{children}</span>
+        <span className="text-xs">
+          {sortField === field ? (
+            sortDirection === 'asc' ? (
+              <span className="text-blue-600">▲</span>
+            ) : (
+              <span className="text-blue-600">▼</span>
+            )
+          ) : (
+            <span className="text-gray-300">▼</span>
+          )}
+        </span>
+      </div>
+    </th>
+  );
 
   return (
     <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
@@ -282,8 +355,14 @@ const CreativePerformance = ({ data, selectedCampaign, periodFilter }: CreativeP
         </div>
       </div>
 
-      {/* Table */}
-      {creativeData.length === 0 ? (
+      {/* Loading State */}
+      {!imagesReady ? (
+        <div className="py-12 flex flex-col items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-gray-600 font-medium">Carregando imagens dos criativos...</p>
+          <p className="text-gray-400 text-sm mt-2">Isso pode levar alguns segundos</p>
+        </div>
+      ) : creativeData.length === 0 ? (
         <div className="py-12 text-center text-gray-500">
           Nenhum criativo encontrado com os filtros selecionados
         </div>
@@ -291,35 +370,48 @@ const CreativePerformance = ({ data, selectedCampaign, periodFilter }: CreativeP
         <>
           <div className="border border-gray-200 rounded-lg overflow-hidden">
             <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-fixed">
+                <colgroup>
+                  <col style={{ width: '80px' }} />
+                  <col style={{ width: '200px' }} />
+                  <col style={{ width: '120px' }} />
+                  <col style={{ width: '100px' }} />
+                  <col style={{ width: '130px' }} />
+                  <col style={{ width: '100px' }} />
+                  <col style={{ width: '100px' }} />
+                  <col style={{ width: '110px' }} />
+                  <col style={{ width: '100px' }} />
+                </colgroup>
                 <thead className="sticky top-0 bg-gray-50 z-10">
                   <tr className="border-b border-gray-200">
-                    <th className="text-center py-3 px-4 font-semibold text-gray-700 border-r border-gray-200 w-20">
+                    <th className="text-center py-3 px-4 font-semibold text-gray-700 border-r border-gray-200">
                       Preview
                     </th>
-                    <th className="text-center py-3 px-4 font-semibold text-gray-700 border-r border-gray-200">
-                      Criativo
-                    </th>
-                    <th className="text-center py-3 px-4 font-semibold text-gray-700 border-r border-gray-200">
-                      Impressões
-                    </th>
-                    <th className="text-center py-3 px-4 font-semibold text-gray-700 border-r border-gray-200">
-                      Views
-                    </th>
-                    <th className="text-center py-3 px-4 font-semibold text-gray-700 border-r border-gray-200">
-                      Engajamento
-                    </th>
-                    <th className="text-center py-3 px-4 font-semibold text-gray-700 border-r border-gray-200">
-                      Cliques
-                    </th>
-                    <th className="text-center py-3 px-4 font-semibold text-gray-700 border-r border-gray-200">
-                      VTR
-                    </th>
-                    <th className="text-center py-3 px-4 font-semibold text-gray-700 border-r border-gray-200">
-                      Tx. Eng.
-                    </th>
-                    <th className="text-center py-3 px-4 font-semibold text-gray-700">
-                      CTR
+                    <SortableHeader field="name">Criativo</SortableHeader>
+                    <SortableHeader field="impressoes">Impressões</SortableHeader>
+                    <SortableHeader field="views">Views</SortableHeader>
+                    <SortableHeader field="engajamento">Engajamento</SortableHeader>
+                    <SortableHeader field="cliques">Cliques</SortableHeader>
+                    <SortableHeader field="vtr">VTR</SortableHeader>
+                    <SortableHeader field="taxaEngajamento">Tx. Eng.</SortableHeader>
+                    <th
+                      onClick={() => handleSort('ctr')}
+                      className="text-center py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors select-none"
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        <span>CTR</span>
+                        <span className="text-xs">
+                          {sortField === 'ctr' ? (
+                            sortDirection === 'asc' ? (
+                              <span className="text-blue-600">▲</span>
+                            ) : (
+                              <span className="text-blue-600">▼</span>
+                            )
+                          ) : (
+                            <span className="text-gray-300">▼</span>
+                          )}
+                        </span>
+                      </div>
                     </th>
                   </tr>
                 </thead>
@@ -333,7 +425,11 @@ const CreativePerformance = ({ data, selectedCampaign, periodFilter }: CreativeP
                         className="hover:bg-blue-50 transition-colors"
                       >
                         <td className="py-3 px-4 border-r border-gray-200">
-                          <div className="flex items-center justify-center">
+                          <div
+                            className="flex items-center justify-center cursor-pointer"
+                            title={creative.name}
+                            onClick={() => setSelectedCreative(creative.name)}
+                          >
                             <CreativeImage
                               imageUrl={imageUrl}
                               creativeName={creative.name}
@@ -341,11 +437,18 @@ const CreativePerformance = ({ data, selectedCampaign, periodFilter }: CreativeP
                             />
                           </div>
                         </td>
-                        <td className="py-3 px-4 max-w-xs border-r border-gray-200">
-                          <div className="font-medium text-gray-900 truncate text-center">
+                        <td className="py-3 px-4 border-r border-gray-200">
+                          <div
+                            className="font-medium text-gray-900 truncate text-center cursor-pointer hover:text-blue-600"
+                            title={creative.name}
+                            onClick={() => setSelectedCreative(creative.name)}
+                          >
                             {creative.name}
                           </div>
-                          <div className="text-xs text-gray-500 truncate text-center">
+                          <div
+                            className="text-xs text-gray-500 truncate text-center cursor-help"
+                            title={`${creative.veiculo} • ${creative.tipoDeCompra} • ${formatTipoMidia(creative.tipoMidia)}`}
+                          >
                             {creative.veiculo} • {creative.tipoDeCompra} • {formatTipoMidia(creative.tipoMidia)}
                           </div>
                         </td>
@@ -507,6 +610,21 @@ const CreativePerformance = ({ data, selectedCampaign, periodFilter }: CreativeP
             )}
           </div>
         </>
+      )}
+
+      {/* Modal */}
+      {selectedCreative && (
+        <CreativeDetailModal
+          creativeName={selectedCreative}
+          data={data}
+          benchmark={(() => {
+            const creative = creativeData.find(c => c.name === selectedCreative);
+            if (!creative) return undefined;
+            const benchmarkKey = getBenchmarkKey(creative.veiculo, creative.tipoDeCompra, creative.tipoMidia);
+            return benchmarks.get(benchmarkKey);
+          })()}
+          onClose={() => setSelectedCreative(null)}
+        />
       )}
     </div>
   );
