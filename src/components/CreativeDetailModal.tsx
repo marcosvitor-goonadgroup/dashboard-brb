@@ -3,22 +3,17 @@ import { ProcessedCampaignData } from '../types/campaign';
 import {
   getCreativeImageUrl,
   getCreativeVideoUrl,
-  getCreativeCarouselFiles,
-  isCreativeVideo,
-  isCreativeCarousel
+  getCreativeCarouselFiles
 } from '../services/creativeImageService';
 import { BenchmarkData } from '../services/benchmarkService';
 import BenchmarkIndicator from './BenchmarkIndicator';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   Area,
   AreaChart
