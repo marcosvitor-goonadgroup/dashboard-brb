@@ -181,3 +181,30 @@ export const fetchPricingTable = async (): Promise<PricingTableRow[]> => {
     throw error;
   }
 };
+
+/**
+ * Converte dados do Google Search para o formato ProcessedCampaignData
+ */
+export const convertSearchDataToCampaignData = (searchData: ProcessedSearchData[]): ProcessedCampaignData[] => {
+  return searchData.map(item => ({
+    date: item.date,
+    campaignName: item.campaignName,
+    adSetName: item.searchTerm, // Usa o termo de busca como Ad Set
+    adName: item.searchTerm, // Usa o termo de busca como Ad Name
+    cost: item.cost,
+    impressions: item.impressions,
+    reach: 0, // Google Search não tem reach
+    clicks: item.clicks,
+    videoViews: 0, // Google Search não tem video views
+    videoViews25: 0,
+    videoViews50: 0,
+    videoViews75: 0,
+    videoCompletions: 0,
+    totalEngagements: 0, // Google Search não tem engajamento
+    veiculo: 'Google Search',
+    tipoDeCompra: 'CPC', // Google Search usa CPC
+    videoEstaticoAudio: '',
+    campanha: item.campanha,
+    numeroPi: '' // Google Search não tem número PI
+  }));
+};

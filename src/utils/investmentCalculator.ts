@@ -10,6 +10,11 @@ export const calculateRealInvestment = (
   data: ProcessedCampaignData,
   pricingTable: PricingTableRow[]
 ): number => {
+  // Cálculo específico para Google Search: Clicks × R$ 56,88
+  if (data.veiculo === 'Google Search') {
+    return data.clicks * 56.88;
+  }
+
   // Busca o preço correspondente ao veículo e tipo de compra
   const pricing = pricingTable.find(
     p => p.veiculo === data.veiculo && p.tipoDeCompra === data.tipoDeCompra

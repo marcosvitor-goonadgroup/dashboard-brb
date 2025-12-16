@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { ProcessedCampaignData, Filters, CampaignSummary, CampaignMetrics } from '../types/campaign';
-import { fetchCampaignData, fetchPricingTable } from '../services/api';
+import { fetchCampaignData, fetchPricingTable, fetchSearchTermsData, convertSearchDataToCampaignData } from '../services/api';
 import { calculateRealInvestment } from '../utils/investmentCalculator';
 import { subDays, isAfter } from 'date-fns';
 
@@ -53,18 +53,24 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
       try {
         setLoading(true);
 
-        // Carrega dados de campanha e tabela de preços em paralelo
-        const [campaignData, pricingData] = await Promise.all([
+        // Carrega dados de campanha, Google Search e tabela de preços em paralelo
+        const [campaignData, searchData, pricingData] = await Promise.all([
           fetchCampaignData(),
+          fetchSearchTermsData(),
           fetchPricingTable()
         ]);
 
- 
+        // Converte dados do Google Search para o formato ProcessedCampaignData
+        const searchCampaignData = convertSearchDataToCampaignData(searchData);
+
+        // Combina dados de campanhas com dados do Google Search
+        const allCampaignData = [...campaignData, ...searchCampaignData];
+
         // Campanhas excluídas do dashboard
         const excludedCampaigns = ['BRB CARD - Friday', 'BRB BANCO', 'BRB Banco'];
 
         // Filtra campanhas excluídas
-        const filteredCampaignData = campaignData.filter(
+        const filteredCampaignData = allCampaignData.filter(
           item => !excludedCampaigns.includes(item.campanha)
         );
 
