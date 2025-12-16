@@ -137,7 +137,6 @@ const processPlatformFolder = async (
           debugMapping.set(file.name, normalizedName);
           carouselCache.set(normalizedName, mediaFiles); // Armazena todos os arquivos do carrossel
 
-          console.log(`📁 Carrossel mapeado: "${file.name}" → "${normalizedName}" (${mediaFiles.length} itens)`);
         }
       }
       // Se for um arquivo de vídeo
@@ -150,7 +149,6 @@ const processPlatformFolder = async (
         debugMapping.set(file.name, normalizedName);
         videoCache.set(normalizedName, videoUrl); // Armazena URL do vídeo
 
-        console.log(`🎥 Vídeo mapeado: "${file.name}" → "${normalizedName}"`);
       }
       // Se for um arquivo de imagem
       else if (file.mimeType.startsWith('image/')) {
@@ -159,7 +157,6 @@ const processPlatformFolder = async (
         mapping.set(normalizedName, thumbnailUrl);
         debugMapping.set(file.name, normalizedName);
 
-        console.log(`🖼️ Imagem mapeada: "${file.name}" → "${normalizedName}"`);
       }
     }
   } catch (error) {
@@ -205,11 +202,9 @@ const getPlatformFolders = async (materialsFolderId: string): Promise<DriveFile[
  */
 export const initializeImageCache = async (): Promise<void> => {
   if (cacheInitialized) {
-    console.log('Cache de imagens já inicializado');
     return;
   }
 
-  console.log('Inicializando cache de imagens...');
 
   try {
     // 1. Buscar pastas de campanhas dentro da pasta BRB
@@ -219,12 +214,10 @@ export const initializeImageCache = async (): Promise<void> => {
     for (const campaign of campaignFolders) {
       if (campaign.mimeType !== 'application/vnd.google-apps.folder') continue;
 
-      console.log(`Processando campanha: ${campaign.name}`);
 
       // 3. Buscar pasta MATERIAIS
       const materialsFolderId = await findMaterialsFolder(campaign.id);
       if (!materialsFolderId) {
-        console.log(`Pasta MATERIAIS não encontrada em: ${campaign.name}`);
         continue;
       }
 
@@ -233,7 +226,6 @@ export const initializeImageCache = async (): Promise<void> => {
 
       // 5. Para cada plataforma, processar os criativos
       for (const platform of platformFolders) {
-        console.log(`Processando plataforma: ${platform.name}`);
         const platformMapping = await processPlatformFolder(platform.id);
 
         // Adicionar ao cache global
@@ -244,7 +236,6 @@ export const initializeImageCache = async (): Promise<void> => {
     }
 
     cacheInitialized = true;
-    console.log(`Cache inicializado com ${imageCache.size} imagens`);
   } catch (error) {
     console.error('Erro ao inicializar cache de imagens:', error);
   }
@@ -270,7 +261,6 @@ export const getCreativeImageUrl = (creativeName: string): string | null => {
   for (const [cachedKey, cachedUrl] of imageCache.entries()) {
     // Se o nome normalizado contém a chave do cache ou vice-versa
     if (normalizedName.includes(cachedKey) || cachedKey.includes(normalizedName)) {
-      console.log(`⚠️ Match parcial encontrado: "${creativeName}" → chave: "${cachedKey}"`);
       return cachedUrl;
     }
   }

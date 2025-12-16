@@ -66,16 +66,31 @@ export const fetchCampaignData = async (): Promise<ProcessedCampaignData[]> => {
     );
 
     const allData: ProcessedCampaignData[] = [];
+    let googleSearchCount = 0;
 
-    responses.forEach(response => {
+    responses.forEach((response, apiIndex) => {
+      const apiUrl = API_URLS[apiIndex];
+      console.log(`Processando API ${apiIndex + 1}: ${apiUrl}`);
+
       if (response.data.success && response.data.data.values.length > 1) {
         const rows = response.data.data.values.slice(1);
+        let googleSearchInApi = 0;
 
         rows.forEach(row => {
-          if (row.length >= 19) {
-            // Ignora linhas onde o Número PI é "#VALUE!"
+          if (row.length >= 18) { // Reduzi de 19 para 18 para aceitar linhas sem Número PI
             const numeroPi = row[18] || '';
-            if (numeroPi === '#VALUE!') {
+            const veiculoRaw = row[14] || '';
+            const veiculo = normalizeVeiculo(veiculoRaw);
+
+            // Debug: log linhas do Google Search
+            if (veiculoRaw.toLowerCase().includes('google') || veiculoRaw === 'Google Search') {
+              googleSearchInApi++;
+              googleSearchCount++;
+            }
+
+            // Ignora linhas onde o Número PI é "#VALUE!", EXCETO para Google Search
+            if (numeroPi === '#VALUE!' && veiculo !== 'Google Search') {
+              console.log('Ignorando linha com #VALUE! que não é Google Search:', veiculo);
               return;
             }
 
@@ -94,7 +109,7 @@ export const fetchCampaignData = async (): Promise<ProcessedCampaignData[]> => {
               videoViews75: parseNumber(row[11]),
               videoCompletions: parseNumber(row[12]),
               totalEngagements: parseNumber(row[13]),
-              veiculo: normalizeVeiculo(row[14] || ''),
+              veiculo: veiculo,
               tipoDeCompra: row[15] || '',
               videoEstaticoAudio: row[16] || '',
               campanha: row[17] || '',
@@ -103,9 +118,12 @@ export const fetchCampaignData = async (): Promise<ProcessedCampaignData[]> => {
             allData.push(dataRow);
           }
         });
+
+        console.log(`API ${apiIndex + 1} - Google Search encontrados: ${googleSearchInApi}`);
       }
     });
 
+    console.log(`Total de linhas Google Search encontradas em todas as APIs: ${googleSearchCount}`);
     return allData;
   } catch (error) {
     console.error('Erro ao buscar dados das campanhas:', error);

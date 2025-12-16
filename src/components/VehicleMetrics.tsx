@@ -151,9 +151,25 @@ const VehicleMetrics = ({ data, selectedCampaign, periodFilter, filters, vehicle
       videoCompletions: number;
     }>();
 
+    let googleSearchItems = 0;
+    let googleSearchClicksSum = 0;
+
     filteredData.forEach(item => {
       const veiculo = item.veiculo;
       if (!veiculo) return;
+
+      if (veiculo === 'Google Search') {
+        googleSearchItems++;
+        googleSearchClicksSum += item.clicks;
+        if (googleSearchItems <= 5) {
+          console.log(`Google Search item ${googleSearchItems}:`, {
+            clicks: item.clicks,
+            impressions: item.impressions,
+            campanha: item.campanha,
+            adName: item.adName
+          });
+        }
+      }
 
       if (vehicleMap.has(veiculo)) {
         const existing = vehicleMap.get(veiculo)!;
@@ -173,11 +189,20 @@ const VehicleMetrics = ({ data, selectedCampaign, periodFilter, filters, vehicle
       }
     });
 
+    if (googleSearchItems > 0) {
+      console.log(`Total de itens Google Search processados: ${googleSearchItems}`);
+      console.log(`Total de clicks somados: ${googleSearchClicksSum}`);
+    }
+
     // Calculate metrics for each vehicle
     const vehicles: VehicleData[] = Array.from(vehicleMap.entries()).map(([veiculo, metrics]) => {
       const ctr = metrics.impressoes > 0 ? (metrics.cliques / metrics.impressoes) * 100 : 0;
       const vtr = metrics.impressoes > 0 ? (metrics.videoCompletions / metrics.impressoes) * 100 : 0;
       const taxaEngajamento = metrics.impressoes > 0 ? (metrics.engajamento / metrics.impressoes) * 100 : 0;
+
+      if (veiculo === 'Google Search') {
+        console.log(`Google Search agregado - Cliques: ${metrics.cliques}, Impressões: ${metrics.impressoes}`);
+      }
 
       return {
         veiculo,

@@ -12,7 +12,8 @@ export const calculateRealInvestment = (
 ): number => {
   // Cálculo específico para Google Search: Clicks × R$ 56,88
   if (data.veiculo === 'Google Search') {
-    return data.clicks * 56.88;
+    const realInvestment = data.clicks * 56.88;
+    return realInvestment;
   }
 
   // Busca o preço correspondente ao veículo e tipo de compra

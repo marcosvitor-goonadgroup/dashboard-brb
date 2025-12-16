@@ -47,13 +47,11 @@ const CreativeAnalysis = ({ data, periodFilter, selectedCampaign }: CreativeAnal
     if (periodFilter === '7days' && data.length > 0 && dataKey) {
       // Verifica se já processou esses dados
       if (dataKey === lastProcessedKeyRef.current) {
-        console.log('📊 Análise de criativos já gerada para esses dados, pulando...');
         return;
       }
 
       // Verifica se já está gerando
       if (isGeneratingRef.current) {
-        console.log('⏳ Análise de criativos já em andamento, pulando nova chamada...');
         return;
       }
 
@@ -70,12 +68,10 @@ const CreativeAnalysis = ({ data, periodFilter, selectedCampaign }: CreativeAnal
   const generateAnalysis = async (forceRefresh: boolean = false) => {
     // Previne chamadas duplicadas
     if (isGeneratingRef.current) {
-      console.log('⏳ Bloqueando chamada duplicada à API de criativos');
       return;
     }
 
     if (!dataKey) {
-      console.error('❌ DataKey não disponível para criativos');
       return;
     }
 

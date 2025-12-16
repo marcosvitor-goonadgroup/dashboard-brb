@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { ProcessedCampaignData, Filters, CampaignSummary, CampaignMetrics } from '../types/campaign';
-import { fetchCampaignData, fetchPricingTable, fetchSearchTermsData, convertSearchDataToCampaignData } from '../services/api';
+import { fetchCampaignData, fetchPricingTable } from '../services/api';
 import { calculateRealInvestment } from '../utils/investmentCalculator';
 import { subDays, isAfter } from 'date-fns';
 
@@ -53,24 +53,24 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
       try {
         setLoading(true);
 
-        // Carrega dados de campanha, Google Search e tabela de preços em paralelo
-        const [campaignData, searchData, pricingData] = await Promise.all([
+        // Carrega dados de campanha e tabela de preços em paralelo
+        const [campaignData, pricingData] = await Promise.all([
           fetchCampaignData(),
-          fetchSearchTermsData(),
           fetchPricingTable()
         ]);
 
-        // Converte dados do Google Search para o formato ProcessedCampaignData
-        const searchCampaignData = convertSearchDataToCampaignData(searchData);
-
-        // Combina dados de campanhas com dados do Google Search
-        const allCampaignData = [...campaignData, ...searchCampaignData];
 
         // Campanhas excluídas do dashboard
         const excludedCampaigns = ['BRB CARD - Friday', 'BRB BANCO', 'BRB Banco'];
 
+        // Log Google Search antes da filtragem
+        const googleSearchBeforeFilter = campaignData.filter(item => item.veiculo === 'Google Search');
+        console.log(`Google Search ANTES da filtragem de campanhas: ${googleSearchBeforeFilter.length}`);
+        const clicksBeforeFilter = googleSearchBeforeFilter.reduce((sum, item) => sum + item.clicks, 0);
+        console.log(`Clicks Google Search ANTES da filtragem: ${clicksBeforeFilter}`);
+
         // Filtra campanhas excluídas
-        const filteredCampaignData = allCampaignData.filter(
+        const filteredCampaignData = campaignData.filter(
           item => !excludedCampaigns.includes(item.campanha)
         );
 
@@ -81,6 +81,11 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
           realInvestment: calculateRealInvestment(item, pricingData)
         }));
 
+        // Log para debug do Google Search
+        const googleSearchData = dataWithRealInvestment.filter(item => item.veiculo === 'Google Search');
+        console.log(`Total de registros Google Search carregados: ${googleSearchData.length}`);
+        const totalClicks = googleSearchData.reduce((sum, item) => sum + item.clicks, 0);
+        console.log(`Total de clicks Google Search: ${totalClicks}`);
 
         setData(dataWithRealInvestment);
         setFilteredData(dataWithRealInvestment);
