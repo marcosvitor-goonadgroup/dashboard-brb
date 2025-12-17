@@ -11,6 +11,7 @@ interface CampaignListProps {
   periodFilter?: '7days' | 'all';
   selectedPI?: string | null;
   onSelectPI?: (pi: string | null) => void;
+  selectedVehicle?: string | null;
 }
 
 const formatCurrency = (num: number): string => {
@@ -25,8 +26,8 @@ const formatNumber = (num: number): string => {
   return new Intl.NumberFormat('pt-BR').format(num);
 };
 
-const CampaignList = ({ campaigns, selectedCampaign, onSelectCampaign, data, filters, periodFilter, selectedPI, onSelectPI }: CampaignListProps) => {
-  // Calcula os PIs disponíveis para cada campanha baseado nos filtros de data
+const CampaignList = ({ campaigns, selectedCampaign, onSelectCampaign, data, filters, periodFilter, selectedPI, onSelectPI, selectedVehicle }: CampaignListProps) => {
+  // Calcula os PIs disponíveis para cada campanha baseado nos filtros de data e veículo
   const campaignPIs = useMemo(() => {
     if (!data) return new Map<string, string[]>();
 
@@ -51,6 +52,11 @@ const CampaignList = ({ campaigns, selectedCampaign, onSelectCampaign, data, fil
       filteredData = filteredData.filter(item => item.date >= sevenDaysAgo);
     }
 
+    // Aplica filtro de veículo
+    if (selectedVehicle) {
+      filteredData = filteredData.filter(d => d.veiculo === selectedVehicle);
+    }
+
     // Agrupa PIs por campanha
     filteredData.forEach(item => {
       if (item.numeroPi) {
@@ -68,7 +74,7 @@ const CampaignList = ({ campaigns, selectedCampaign, onSelectCampaign, data, fil
     });
 
     return result;
-  }, [data, filters, periodFilter]);
+  }, [data, filters, periodFilter, selectedVehicle]);
 
   const handlePIClick = (pi: string, e: React.MouseEvent) => {
     e.stopPropagation();

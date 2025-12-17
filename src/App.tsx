@@ -17,7 +17,7 @@ import { ProcessedSearchData } from './types/campaign';
 import { subDays } from 'date-fns';
 
 const DashboardContent = () => {
-  const { loading, error, campaigns, filteredData, filters, data } = useCampaign();
+  const { loading, error, campaigns, filteredData, filters, setFilters, data } = useCampaign();
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
   const [periodFilter, setPeriodFilter] = useState<'7days' | 'all'>('7days');
@@ -231,11 +231,29 @@ const DashboardContent = () => {
     if (filters.veiculo.length > 0) count += filters.veiculo.length;
     if (filters.tipoDeCompra.length > 0) count += filters.tipoDeCompra.length;
     if (filters.campanha.length > 0) count += filters.campanha.length;
+    if (filters.numeroPi) count++;
+    if (selectedCampaign) count++;
+    if (selectedVehicle) count++;
+    if (selectedPI) count++;
     return count;
-  }, [filters]);
+  }, [filters, selectedCampaign, selectedVehicle, selectedPI]);
 
   const handleSelectCampaign = (campaignName: string) => {
     setSelectedCampaign(campaignName === selectedCampaign ? null : (campaignName || null));
+  };
+
+  const handleClearFilters = () => {
+    // Limpa todos os filtros exceto o período
+    setSelectedCampaign(null);
+    setSelectedVehicle(null);
+    setSelectedPI(null);
+    setFilters({
+      dateRange: { start: null, end: null },
+      veiculo: [],
+      tipoDeCompra: [],
+      campanha: [],
+      numeroPi: null
+    });
   };
 
   if (loading) {
@@ -263,7 +281,11 @@ const DashboardContent = () => {
     <div className="min-h-screen bg-gray-50 relative">
       <ParticlesBackground />
       <div className="relative z-10">
-        <Header onOpenFilters={() => setIsFiltersOpen(true)} activeFiltersCount={activeFiltersCount} />
+        <Header
+          onOpenFilters={() => setIsFiltersOpen(true)}
+          onClearFilters={handleClearFilters}
+          activeFiltersCount={activeFiltersCount}
+        />
         <Filters isOpen={isFiltersOpen} onClose={() => setIsFiltersOpen(false)} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -333,6 +355,7 @@ const DashboardContent = () => {
                   periodFilter={periodFilter}
                   selectedPI={selectedPI}
                   onSelectPI={setSelectedPI}
+                  selectedVehicle={selectedVehicle}
                 />
               </div>
             </div>
