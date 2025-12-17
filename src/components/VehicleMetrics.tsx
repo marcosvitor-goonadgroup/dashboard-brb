@@ -1,6 +1,5 @@
 import { useMemo, JSX } from 'react';
 import { ProcessedCampaignData, Filters } from '../types/campaign';
-import { subDays } from 'date-fns';
 import BenchmarkIndicator from './BenchmarkIndicator';
 
 interface VehicleMetricsProps {
@@ -9,6 +8,8 @@ interface VehicleMetricsProps {
   periodFilter: '7days' | 'all';
   filters?: Filters;
   vehicleBenchmarks?: Map<string, { ctr: number; vtr: number; taxaEngajamento: number }>;
+  selectedVehicle?: string | null;
+  onSelectVehicle?: (vehicle: string | null) => void;
 }
 
 interface VehicleData {
@@ -106,7 +107,7 @@ const SocialIcon = ({ name }: { name: string }) => {
   );
 };
 
-const VehicleMetrics = ({ data, selectedCampaign, periodFilter, filters, vehicleBenchmarks }: VehicleMetricsProps) => {
+const VehicleMetrics = ({ data, periodFilter, filters, vehicleBenchmarks, selectedVehicle, onSelectVehicle }: VehicleMetricsProps) => {
   // Detecta se há filtros ativos
   const hasActiveFilters = () => {
     if (!filters) return false;
@@ -129,18 +130,9 @@ const VehicleMetrics = ({ data, selectedCampaign, periodFilter, filters, vehicle
 
   // Aggregate data by vehicle
   const vehicleData = useMemo(() => {
+    // Os dados já vêm filtrados do componente pai (displayData)
+    // Não precisa aplicar filtros aqui
     let filteredData = data;
-
-    // Filter by period
-    if (periodFilter === '7days') {
-      const sevenDaysAgo = subDays(new Date(), 7);
-      filteredData = filteredData.filter(item => item.date >= sevenDaysAgo);
-    }
-
-    // Filter by selected campaign from parent
-    if (selectedCampaign) {
-      filteredData = filteredData.filter(d => d.campanha === selectedCampaign);
-    }
 
     // Aggregate by vehicle
     const vehicleMap = new Map<string, {
@@ -218,7 +210,7 @@ const VehicleMetrics = ({ data, selectedCampaign, periodFilter, filters, vehicle
 
     // Sort by impressions
     return vehicles.sort((a, b) => b.impressoes - a.impressoes);
-  }, [data, selectedCampaign, periodFilter]);
+  }, [data]);
 
   if (vehicleData.length === 0) {
     return (
@@ -233,11 +225,27 @@ const VehicleMetrics = ({ data, selectedCampaign, periodFilter, filters, vehicle
     );
   }
 
+  const handleVehicleClick = (vehicle: string) => {
+    if (onSelectVehicle) {
+      onSelectVehicle(selectedVehicle === vehicle ? null : vehicle);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
-      <h2 className="text-lg font-semibold text-gray-800 mb-6">
-        Performance por Veículo
-      </h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-lg font-semibold text-gray-800">
+          Performance por Veículo
+        </h2>
+        {selectedVehicle && (
+          <button
+            onClick={() => onSelectVehicle?.(null)}
+            className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+          >
+            Limpar filtro
+          </button>
+        )}
+      </div>
 
       <div className="border border-gray-200 rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
@@ -274,7 +282,10 @@ const VehicleMetrics = ({ data, selectedCampaign, periodFilter, filters, vehicle
               {vehicleData.map((vehicle) => (
                 <tr
                   key={vehicle.veiculo}
-                  className="hover:bg-blue-50 transition-colors"
+                  onClick={() => handleVehicleClick(vehicle.veiculo)}
+                  className={`hover:bg-blue-50 transition-colors cursor-pointer ${
+                    selectedVehicle === vehicle.veiculo ? 'bg-blue-50 border-l-4 border-blue-600' : ''
+                  }`}
                 >
                   <td className="py-3 px-4 border-r border-gray-200">
                     <div className="flex items-center justify-center gap-3">

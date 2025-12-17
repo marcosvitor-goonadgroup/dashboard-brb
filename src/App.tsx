@@ -24,6 +24,8 @@ const DashboardContent = () => {
   const [comparisonMode, setComparisonMode] = useState<'benchmark' | 'previous'>('benchmark');
   const [searchTermsData, setSearchTermsData] = useState<ProcessedSearchData[]>([]);
   const [loadingSearchTerms, setLoadingSearchTerms] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
+  const [selectedPI, setSelectedPI] = useState<string | null>(null);
 
   // Load search terms data
   useEffect(() => {
@@ -41,6 +43,30 @@ const DashboardContent = () => {
 
     loadSearchTerms();
   }, []);
+
+  // Muda automaticamente para "Todo o período" quando filtro de datas é aplicado
+  useEffect(() => {
+    if (filters.dateRange.start || filters.dateRange.end) {
+      setPeriodFilter('all');
+    }
+  }, [filters.dateRange.start, filters.dateRange.end]);
+
+  // Calcula a data máxima disponível nos dados (exclui D-1)
+  // IMPORTANTE: usa 'data' (não filtrado) para calcular corretamente os últimos 7 dias disponíveis
+  const maxAvailableDate = useMemo(() => {
+    const yesterday = subDays(new Date(), 1);
+    const datesInData = data
+      .map(item => item.date)
+      .filter(date => date <= yesterday);
+
+    if (datesInData.length === 0) return yesterday;
+    return new Date(Math.max(...datesInData.map(d => d.getTime())));
+  }, [data]);
+
+  // Calcula 7 dias atrás baseado na data máxima disponível
+  const sevenDaysAgoFromMaxDate = useMemo(() => {
+    return subDays(maxAvailableDate, 7);
+  }, [maxAvailableDate]);
 
   // Calcula os benchmarks gerais a partir de TODOS os dados (sem filtros) - CÁLCULO LOCAL
   const generalBenchmarks = useMemo(() => {
@@ -107,10 +133,9 @@ const DashboardContent = () => {
     const yesterday = subDays(new Date(), 1);
     filteredDataCopy = filteredDataCopy.filter(item => item.date <= yesterday);
 
-    // Filter by period
+    // Filter by period - usa os últimos 7 dias disponíveis nos dados
     if (periodFilter === '7days') {
-      const sevenDaysAgo = subDays(yesterday, 7);
-      filteredDataCopy = filteredDataCopy.filter(item => item.date >= sevenDaysAgo);
+      filteredDataCopy = filteredDataCopy.filter(item => item.date >= sevenDaysAgoFromMaxDate);
     }
 
     // Filter by selected campaign
@@ -118,19 +143,28 @@ const DashboardContent = () => {
       filteredDataCopy = filteredDataCopy.filter(d => d.campanha === selectedCampaign);
     }
 
+    // Filter by selected vehicle
+    if (selectedVehicle) {
+      filteredDataCopy = filteredDataCopy.filter(d => d.veiculo === selectedVehicle);
+    }
+
+    // Filter by selected PI
+    if (selectedPI) {
+      filteredDataCopy = filteredDataCopy.filter(d => d.numeroPi === selectedPI);
+    }
+
     return filteredDataCopy;
-  }, [filteredData, selectedCampaign, periodFilter]);
+  }, [filteredData, selectedCampaign, periodFilter, selectedVehicle, selectedPI, sevenDaysAgoFromMaxDate]);
 
   // Calcula as métricas do período anterior (para comparação)
   const previousPeriodMetrics = useMemo(() => {
     if (periodFilter !== '7days') return null;
 
-    const yesterday = subDays(new Date(), 1);
-    const sevenDaysAgo = subDays(yesterday, 7);
-    const fourteenDaysAgo = subDays(yesterday, 14);
+    // Usa 14 dias atrás baseado na data máxima disponível
+    const fourteenDaysAgoFromMaxDate = subDays(maxAvailableDate, 14);
 
     let previousData = filteredData.filter(item =>
-      item.date >= fourteenDaysAgo && item.date < sevenDaysAgo
+      item.date >= fourteenDaysAgoFromMaxDate && item.date < sevenDaysAgoFromMaxDate
     );
 
     if (selectedCampaign) {
@@ -158,7 +192,7 @@ const DashboardContent = () => {
       vtr: totalImpressoes > 0 ? (totalVideoCompletions / totalImpressoes) * 100 : 0,
       taxaEngajamento: totalImpressoes > 0 ? (totalEngajamento / totalImpressoes) * 100 : 0
     };
-  }, [filteredData, selectedCampaign, periodFilter]);
+  }, [filteredData, selectedCampaign, periodFilter, maxAvailableDate, sevenDaysAgoFromMaxDate]);
 
   const displayMetrics = useMemo(() => {
     // Calculate metrics based on displayData (which includes period filter)
@@ -294,6 +328,11 @@ const DashboardContent = () => {
                   campaigns={campaigns}
                   selectedCampaign={selectedCampaign}
                   onSelectCampaign={handleSelectCampaign}
+                  data={filteredData}
+                  filters={filters}
+                  periodFilter={periodFilter}
+                  selectedPI={selectedPI}
+                  onSelectPI={setSelectedPI}
                 />
               </div>
             </div>
@@ -313,11 +352,13 @@ const DashboardContent = () => {
 
           <div>
             <VehicleMetrics
-              data={filteredData}
+              data={displayData}
               selectedCampaign={selectedCampaign}
               periodFilter={periodFilter}
               filters={filters}
               vehicleBenchmarks={vehicleBenchmarks}
+              selectedVehicle={selectedVehicle}
+              onSelectVehicle={setSelectedVehicle}
             />
           </div>
 
@@ -333,9 +374,7 @@ const DashboardContent = () => {
 
           <div>
             <CreativePerformance
-              data={filteredData}
-              selectedCampaign={selectedCampaign}
-              periodFilter={periodFilter}
+              data={displayData}
             />
           </div>
 

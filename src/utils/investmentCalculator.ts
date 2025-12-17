@@ -16,6 +16,13 @@ export const calculateRealInvestment = (
     return realInvestment;
   }
 
+  // Cálculo específico para YouTube CPV ou CPM: Views × R$ 1,26
+  const tipoDeCompraUpper = data.tipoDeCompra.toUpperCase();
+  if (data.veiculo === 'YouTube' && (tipoDeCompraUpper === 'CPV' || tipoDeCompraUpper === 'CPM')) {
+    const realInvestment = data.videoViews * 1.26;
+    return realInvestment;
+  }
+
   // Busca o preço correspondente ao veículo e tipo de compra
   const pricing = pricingTable.find(
     p => p.veiculo === data.veiculo && p.tipoDeCompra === data.tipoDeCompra

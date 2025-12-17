@@ -61,7 +61,7 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
 
 
         // Campanhas excluídas do dashboard
-        const excludedCampaigns = ['BRB CARD - Friday', 'BRB BANCO', 'BRB Banco'];
+        const excludedCampaigns = ['BRB CARD - Friday', 'BRB BANCO', 'BRB Banco', 'BRB CONARH'];
 
         // Log Google Search antes da filtragem
         const googleSearchBeforeFilter = campaignData.filter(item => item.veiculo === 'Google Search');
@@ -158,8 +158,11 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
     .filter(Boolean)
     .map(campanhaNome => {
       const campanhaData = filteredData.filter(d => d.campanha === campanhaNome);
-      const sevenDaysAgo = subDays(new Date(), 7);
-      const recentData = campanhaData.filter(d => isAfter(d.date, sevenDaysAgo));
+
+      // Para a bolinha de status, usa a data atual (não a data máxima dos dados)
+      // Isso garante que mostra verde se há dados nos últimos 7 dias reais
+      const sevenDaysAgoFromToday = subDays(new Date(), 7);
+      const recentData = campanhaData.filter(d => isAfter(d.date, sevenDaysAgoFromToday));
 
       const isActive = recentData.some(
         d => (d.impressions > 0 || d.clicks > 0 || d.videoViews > 0) && d.cost > 0

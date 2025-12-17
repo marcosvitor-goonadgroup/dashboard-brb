@@ -15,6 +15,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.17",
     "@types/react": "^19.2.7",
+    "@types/react-date-range": "^1.4.10",
     "@types/react-dom": "^19.2.3",
     "@vercel/node": "^5.5.15",
     "@vitejs/plugin-react": "^5.1.1",
@@ -31,6 +32,7 @@
     "date-fns": "^4.1.0",
     "ioredis": "^5.8.2",
     "react": "^19.2.0",
+    "react-date-range": "^2.0.1",
     "react-dom": "^19.2.0",
     "react-tsparticles": "^2.12.2",
     "recharts": "^3.5.1",

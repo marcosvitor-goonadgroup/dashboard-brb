@@ -9,12 +9,9 @@ import {
   getCreativeImageUrl,
   isCacheInitialized
 } from '../services/creativeImageService';
-import { subDays } from 'date-fns';
 
 interface CreativePerformanceProps {
   data: ProcessedCampaignData[];
-  selectedCampaign: string | null;
-  periodFilter: '7days' | 'all';
 }
 
 interface CreativeData {
@@ -63,7 +60,7 @@ const formatTipoMidia = (tipoMidia: string): string => {
 type SortField = 'name' | 'impressoes' | 'views' | 'engajamento' | 'cliques' | 'vtr' | 'taxaEngajamento' | 'ctr';
 type SortDirection = 'asc' | 'desc';
 
-const CreativePerformance = ({ data, selectedCampaign, periodFilter }: CreativePerformanceProps) => {
+const CreativePerformance = ({ data }: CreativePerformanceProps) => {
   const [selectedVeiculo, setSelectedVeiculo] = useState<string>('all');
   const [selectedTipoCompra, setSelectedTipoCompra] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -131,22 +128,11 @@ const CreativePerformance = ({ data, selectedCampaign, periodFilter }: CreativeP
 
   // Filter and aggregate data by creative (adName)
   const creativeData = useMemo(() => {
+    // Os dados já vêm filtrados do componente pai (displayData)
+    // Aqui aplicamos apenas os filtros locais deste componente
     let filteredData = data;
 
-    // Sempre exclui o dia atual (considera apenas até D-1)
-    const yesterday = subDays(new Date(), 1);
-    filteredData = filteredData.filter(item => item.date <= yesterday);
-
-    // Apply period filter
-    if (periodFilter === '7days') {
-      const sevenDaysAgo = subDays(yesterday, 7);
-      filteredData = filteredData.filter(item => item.date >= sevenDaysAgo);
-    }
-
-    // Apply filter from parent component (CampaignList selection)
-    if (selectedCampaign) {
-      filteredData = filteredData.filter(d => d.campanha === selectedCampaign);
-    }
+    // Apply local filters (veículo e tipo de compra)
     if (selectedVeiculo !== 'all') {
       filteredData = filteredData.filter(d => d.veiculo === selectedVeiculo);
     }
@@ -240,7 +226,7 @@ const CreativePerformance = ({ data, selectedCampaign, periodFilter }: CreativeP
     }
 
     return creativesArray;
-  }, [data, selectedCampaign, selectedVeiculo, selectedTipoCompra, searchQuery, periodFilter, sortField, sortDirection]);
+  }, [data, selectedVeiculo, selectedTipoCompra, searchQuery, sortField, sortDirection]);
 
   // Pagination
   const totalPages = Math.ceil(creativeData.length / itemsPerPage);
@@ -252,7 +238,7 @@ const CreativePerformance = ({ data, selectedCampaign, periodFilter }: CreativeP
   // Reset to page 1 when filters change
   useMemo(() => {
     setCurrentPage(1);
-  }, [selectedVeiculo, selectedTipoCompra, searchQuery, selectedCampaign]);
+  }, [selectedVeiculo, selectedTipoCompra, searchQuery]);
 
   // Componente para header ordenável
   const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (

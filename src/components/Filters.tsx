@@ -1,6 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useCampaign } from '../contexts/CampaignContext';
-import { format, subDays } from 'date-fns';
+import { subDays, startOfYear, endOfYear, subMonths } from 'date-fns';
+import { DateRangePicker, RangeKeyDict, Range } from 'react-date-range';
+import 'react-date-range/dist/styles.css';
+import 'react-date-range/dist/theme/default.css';
+import './DateRangePicker.css';
+import { ptBR } from 'date-fns/locale';
 
 interface FiltersProps {
   isOpen: boolean;
@@ -11,16 +16,36 @@ const Filters = ({ isOpen, onClose }: FiltersProps) => {
   const { filters, setFilters, availableFilters, data } = useCampaign();
 
   const [localFilters, setLocalFilters] = useState(filters);
+  const [dateRange, setDateRange] = useState<Range[]>([
+    {
+      startDate: filters.dateRange.start || undefined,
+      endDate: filters.dateRange.end || undefined,
+      key: 'selection'
+    }
+  ]);
 
   // Sincroniza localFilters quando o modal abre
   useEffect(() => {
     if (isOpen) {
       setLocalFilters(filters);
+      setDateRange([
+        {
+          startDate: filters.dateRange.start || undefined,
+          endDate: filters.dateRange.end || undefined,
+          key: 'selection'
+        }
+      ]);
     }
   }, [isOpen, filters]);
 
   // Data máxima permitida é D-1 (ontem)
-  const maxDate = useMemo(() => format(subDays(new Date(), 1), 'yyyy-MM-dd'), []);
+  const maxDate = useMemo(() => subDays(new Date(), 1), []);
+
+  // Obtém a data mínima disponível nos dados
+  const minDate = useMemo(() => {
+    if (data.length === 0) return new Date();
+    return new Date(Math.min(...data.map(d => d.date.getTime())));
+  }, [data]);
 
   // Filtra os Números PI disponíveis baseado nos filtros locais ativos
   const filteredNumerosPi = useMemo(() => {
@@ -53,6 +78,32 @@ const Filters = ({ isOpen, onClose }: FiltersProps) => {
     return Array.from(new Set(filtered.map(d => d.numeroPi).filter(Boolean)));
   }, [data, localFilters.dateRange, localFilters.campanha, localFilters.veiculo, localFilters.tipoDeCompra]);
 
+  const handleDateChange = (ranges: RangeKeyDict) => {
+    const selection = ranges.selection;
+    setDateRange([selection]);
+    setLocalFilters(prev => ({
+      ...prev,
+      dateRange: {
+        start: selection.startDate || null,
+        end: selection.endDate || null
+      }
+    }));
+  };
+
+  const handlePresetClick = (start: Date, end: Date) => {
+    setDateRange([
+      {
+        startDate: start,
+        endDate: end,
+        key: 'selection'
+      }
+    ]);
+    setLocalFilters(prev => ({
+      ...prev,
+      dateRange: { start, end }
+    }));
+  };
+
   const handleApply = () => {
     setFilters(localFilters);
     onClose();
@@ -68,6 +119,13 @@ const Filters = ({ isOpen, onClose }: FiltersProps) => {
     };
     setLocalFilters(clearedFilters);
     setFilters(clearedFilters);
+    setDateRange([
+      {
+        startDate: undefined,
+        endDate: undefined,
+        key: 'selection'
+      }
+    ]);
   };
 
   const toggleArrayFilter = (key: 'veiculo' | 'tipoDeCompra' | 'campanha', value: string) => {
@@ -79,6 +137,19 @@ const Filters = ({ isOpen, onClose }: FiltersProps) => {
       return { ...prev, [key]: newArray };
     });
   };
+
+  // Objeto de localização customizado para react-date-range
+  const localeConfig = useMemo(() => ({
+    ...ptBR,
+    localize: {
+      ...ptBR.localize,
+      day: (n: number) => ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][n],
+      month: (n: number) => [
+        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+      ][n]
+    } as typeof ptBR.localize
+  }), []);
 
   if (!isOpen) return null;
 
@@ -105,59 +176,65 @@ const Filters = ({ isOpen, onClose }: FiltersProps) => {
 
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Data Inicial
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Período
               </label>
-              <input
-                type="date"
-                max={maxDate}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={localFilters.dateRange.start ? format(localFilters.dateRange.start, 'yyyy-MM-dd') : ''}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    // Cria a data corretamente no fuso horário local
-                    const [year, month, day] = e.target.value.split('-').map(Number);
-                    const selectedDate = new Date(year, month - 1, day);
-                    setLocalFilters(prev => ({
-                      ...prev,
-                      dateRange: { ...prev.dateRange, start: selectedDate }
-                    }));
-                  } else {
-                    setLocalFilters(prev => ({
-                      ...prev,
-                      dateRange: { ...prev.dateRange, start: null }
-                    }));
-                  }
-                }}
-              />
-            </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Data Final
-              </label>
-              <input
-                type="date"
-                max={maxDate}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={localFilters.dateRange.end ? format(localFilters.dateRange.end, 'yyyy-MM-dd') : ''}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    // Cria a data corretamente no fuso horário local
-                    const [year, month, day] = e.target.value.split('-').map(Number);
-                    const selectedDate = new Date(year, month - 1, day);
-                    setLocalFilters(prev => ({
-                      ...prev,
-                      dateRange: { ...prev.dateRange, end: selectedDate }
-                    }));
-                  } else {
-                    setLocalFilters(prev => ({
-                      ...prev,
-                      dateRange: { ...prev.dateRange, end: null }
-                    }));
-                  }
-                }}
-              />
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => handlePresetClick(subMonths(maxDate, 1), maxDate)}
+                  className="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  Último mês
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePresetClick(subMonths(maxDate, 3), maxDate)}
+                  className="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  Últimos 3 meses
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePresetClick(startOfYear(new Date()), endOfYear(new Date()))}
+                  className="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  Este ano
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePresetClick(startOfYear(subMonths(new Date(), 12)), endOfYear(subMonths(new Date(), 12)))}
+                  className="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  Ano passado
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePresetClick(minDate, maxDate)}
+                  className="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors col-span-2"
+                >
+                  Todo o período disponível
+                </button>
+              </div>
+
+              <div className="border border-gray-200 rounded-lg">
+                <DateRangePicker
+                  ranges={dateRange}
+                  onChange={handleDateChange}
+                  locale={localeConfig}
+                  maxDate={maxDate}
+                  minDate={minDate}
+                  showMonthAndYearPickers={true}
+                  showDateDisplay={false}
+                  moveRangeOnFirstSelection={false}
+                  rangeColors={['#2563eb']}
+                  months={1}
+                  direction="horizontal"
+                  weekdayDisplayFormat="EEEEEE"
+                  monthDisplayFormat="MMMM yyyy"
+                />
+              </div>
             </div>
 
             <div>
