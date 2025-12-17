@@ -61,7 +61,7 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
 
 
         // Campanhas excluídas do dashboard
-        const excludedCampaigns = ['BRB CARD - Friday', 'BRB BANCO', 'BRB Banco', 'BRB CONARH'];
+        const excludedCampaigns = ['BRB BANCO', 'BRB Banco', 'BRB CONARH'];
 
         // Log Google Search antes da filtragem
         const googleSearchBeforeFilter = campaignData.filter(item => item.veiculo === 'Google Search');

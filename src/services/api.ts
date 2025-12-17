@@ -14,6 +14,8 @@ const SEARCH_API_URLS = [
 
 const PRICING_API_URL = 'https://nmbcoamazonia-api.vercel.app/google/sheets/1zgRBEs_qi_9DdYLqw-cEedD1u66FS88ku6zTZ0gV-oU/data?range=base';
 
+const PI_INFO_API_URL = 'https://nmbcoamazonia-api.vercel.app/google/sheets/1T35Pzw9ZA5NOTLHsTqMGZL5IEedpSGdZHJ2ElrqLs1M/data';
+
 const parseNumber = (value: string): number => {
   if (!value || value === '') return 0;
   const cleaned = value.replace(/\./g, '').replace(',', '.');
@@ -225,4 +227,58 @@ export const convertSearchDataToCampaignData = (searchData: ProcessedSearchData[
     campanha: item.campanha,
     numeroPi: '' // Google Search não tem número PI
   }));
+};
+
+/**
+ * Busca informações de um PI específico
+ */
+export const fetchPIInfo = async (numeroPi: string) => {
+  try {
+    const response = await axios.get(PI_INFO_API_URL);
+
+    if (!response.data.success || !response.data.data.values) {
+      throw new Error('Formato de resposta inválido');
+    }
+
+    const values = response.data.data.values;
+
+    // Remove zeros à esquerda para comparação
+    const normalizedPi = numeroPi.replace(/^0+/, '');
+
+    // Encontra todas as linhas com o número PI especificado
+    // Compara removendo zeros à esquerda de ambos os lados
+    const piRows = values.slice(1).filter((row: string[]) => {
+      const rowPi = (row[0] || '').replace(/^0+/, '');
+      return rowPi === normalizedPi;
+    });
+
+    if (piRows.length === 0) {
+      return null;
+    }
+
+    // Agrupa informações por veículo
+    const piInfo = piRows.map((row: string[]) => ({
+      numeroPi: row[0] || '',
+      veiculo: row[1] || '',
+      canal: row[2] || '',
+      formato: row[3] || '',
+      modeloCompra: row[4] || '',
+      valorNegociado: row[7] || '',
+      quantidade: row[8] || '',
+      totalBruto: row[9] || '',
+      status: row[11] || '',
+      segmentacao: row[12] || '',
+      alcance: row[13] || '',
+      inicio: row[14] || '',
+      fim: row[15] || '',
+      publico: row[16] || '',
+      praca: row[17] || '',
+      objetivo: row[18] || ''
+    }));
+
+    return piInfo;
+  } catch (error) {
+    console.error('Erro ao buscar informações do PI:', error);
+    return null;
+  }
 };

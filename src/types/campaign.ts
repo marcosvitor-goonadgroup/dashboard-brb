@@ -145,3 +145,22 @@ export interface PricingTableRow {
   desconto: number;
   valorFinal: number;
 }
+
+export interface PIInfo {
+  numeroPi: string;
+  veiculo: string;
+  canal: string;
+  formato: string;
+  modeloCompra: string;
+  valorNegociado: string;
+  quantidade: string;
+  totalBruto: string;
+  status: string;
+  segmentacao: string;
+  alcance: string;
+  inicio: string;
+  fim: string;
+  publico: string;
+  praca: string;
+  objetivo: string;
+}

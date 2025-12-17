@@ -12,6 +12,7 @@ import ComparisonToggle from './components/ComparisonToggle';
 import AIAnalysis from './components/AIAnalysis';
 import CreativeAnalysis from './components/CreativeAnalysis';
 import ParticlesBackground from './components/ParticlesBackground';
+import PIInfoCard from './components/PIInfoCard';
 import { fetchSearchTermsData } from './services/api';
 import { ProcessedSearchData } from './types/campaign';
 import { subDays } from 'date-fns';
@@ -342,6 +343,13 @@ const DashboardContent = () => {
               previousPeriodMetrics={previousPeriodMetrics}
             />
           </div>
+
+          {/* Card de Informações do PI */}
+          {selectedPI && (
+            <div>
+              <PIInfoCard numeroPi={selectedPI} />
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:items-stretch">
             <div className="lg:col-span-4 flex">
