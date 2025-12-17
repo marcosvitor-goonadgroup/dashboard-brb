@@ -74,9 +74,14 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
           item => !excludedCampaigns.includes(item.campanha)
         );
 
+        // Corrige PI '20390' para '20392'
+        const correctedCampaignData = filteredCampaignData.map(item => ({
+          ...item,
+          numeroPi: item.numeroPi === '20390' ? '20392' : item.numeroPi
+        }));
 
         // Calcula investimento real para cada item
-        const dataWithRealInvestment = filteredCampaignData.map(item => ({
+        const dataWithRealInvestment = correctedCampaignData.map(item => ({
           ...item,
           realInvestment: calculateRealInvestment(item, pricingData)
         }));
