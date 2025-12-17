@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { ProcessedCampaignData } from '../types/campaign';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -15,17 +15,18 @@ interface ImpressionsChartProps {
 type MetricType = 'impressoes' | 'cliques' | 'views' | 'engajamento' | 'ctr' | 'vtr' | 'taxaEngajamento';
 
 const metricOptions = [
-  { value: 'impressoes', label: 'Impressões' },
-  { value: 'cliques', label: 'Cliques' },
-  { value: 'views', label: 'Views' },
-  { value: 'engajamento', label: 'Engajamento' },
-  { value: 'ctr', label: 'CTR' },
-  { value: 'vtr', label: 'VTR' },
-  { value: 'taxaEngajamento', label: 'Taxa Engajamento' }
+  { value: 'impressoes', label: 'Impressões', type: 'count', color: '#0ea5e9' },
+  { value: 'cliques', label: 'Cliques', type: 'count', color: '#8b5cf6' },
+  { value: 'views', label: 'Views', type: 'count', color: '#10b981' },
+  { value: 'engajamento', label: 'Engajamento', type: 'count', color: '#f59e0b' },
+  { value: 'ctr', label: 'CTR', type: 'percentage', color: '#ef4444' },
+  { value: 'vtr', label: 'VTR', type: 'percentage', color: '#ec4899' },
+  { value: 'taxaEngajamento', label: 'Taxa Engajamento', type: 'percentage', color: '#6366f1' }
 ];
 
 const ImpressionsChart = ({ data, allData, periodFilter, comparisonMode = 'benchmark', showComparison = false }: ImpressionsChartProps) => {
-  const [selectedMetric, setSelectedMetric] = useState<MetricType>('impressoes');
+  const [selectedMetrics, setSelectedMetrics] = useState<MetricType[]>(['impressoes']);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // Sempre considera D-1 (ontem) como o dia mais recente
   const yesterday = useMemo(() => subDays(new Date(), 1), []);
@@ -179,23 +180,32 @@ const ImpressionsChart = ({ data, allData, periodFilter, comparisonMode = 'bench
     console.log('📊 Último item (período atual):', combinedData[combinedData.length - 1]);
 
     return combinedData;
-  }, [data, sourceData, yesterday, sevenDaysAgo, fourteenDaysAgo, periodFilter, comparisonMode, showComparison, selectedMetric]);
+  }, [data, sourceData, yesterday, sevenDaysAgo, fourteenDaysAgo, periodFilter, comparisonMode, showComparison]);
 
-  const formatYAxis = (value: number) => {
-    const isPercentage = ['ctr', 'vtr', 'taxaEngajamento'].includes(selectedMetric);
-    const isCurrency = ['investimento', 'cpm', 'cpc', 'cpv', 'cpe'].includes(selectedMetric);
-
-    if (isPercentage) {
-      return `${value.toFixed(1)}%`;
-    }
-
-    if (isCurrency) {
-      if (value >= 1000) {
-        return `R$ ${(value / 1000).toFixed(1)} mil`;
+  const toggleMetric = (metric: MetricType) => {
+    setSelectedMetrics(prev => {
+      if (prev.includes(metric)) {
+        // Não permite desmarcar se for a última métrica selecionada
+        if (prev.length === 1) return prev;
+        return prev.filter(m => m !== metric);
+      } else {
+        return [...prev, metric];
       }
-      return `R$ ${value.toFixed(0)}`;
-    }
+    });
+  };
 
+  // Verifica se há métricas de ambos os tipos selecionadas
+  const hasCountMetrics = selectedMetrics.some(m => {
+    const option = metricOptions.find(o => o.value === m);
+    return option?.type === 'count';
+  });
+
+  const hasPercentageMetrics = selectedMetrics.some(m => {
+    const option = metricOptions.find(o => o.value === m);
+    return option?.type === 'percentage';
+  });
+
+  const formatYAxisCount = (value: number) => {
     if (value >= 1000000) {
       return `${(value / 1000000).toFixed(1)} mi`;
     }
@@ -205,22 +215,25 @@ const ImpressionsChart = ({ data, allData, periodFilter, comparisonMode = 'bench
     return value.toString();
   };
 
-  const formatTooltip = (value: number) => {
-    const isPercentage = ['ctr', 'vtr', 'taxaEngajamento'].includes(selectedMetric);
-    const isCurrency = ['investimento', 'cpm', 'cpc', 'cpv', 'cpe'].includes(selectedMetric);
+  const formatYAxisPercentage = (value: number) => {
+    return `${value.toFixed(1)}%`;
+  };
 
-    if (isPercentage) {
+  const formatTooltip = (value: number, name: string) => {
+    // Extrai o nome da métrica removendo o sufixo "_anterior" se existir
+    const metricName = name.replace(' (Período Anterior)', '');
+    const metric = metricOptions.find(m => m.label === metricName);
+
+    if (metric?.type === 'percentage') {
       return `${value.toFixed(2)}%`;
-    }
-
-    if (isCurrency) {
-      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
     }
 
     return new Intl.NumberFormat('pt-BR').format(value);
   };
 
-  const selectedMetricLabel = metricOptions.find(m => m.value === selectedMetric)?.label || 'Impressões';
+  const chartTitle = selectedMetrics.length === 1
+    ? `${metricOptions.find(m => m.value === selectedMetrics[0])?.label} vs Data`
+    : 'Métricas vs Data';
 
   // Verifica se há dados do período anterior disponíveis
   const hasPreviousPeriodData = useMemo(() => {
@@ -238,29 +251,76 @@ const ImpressionsChart = ({ data, allData, periodFilter, comparisonMode = 'bench
   return (
     <div className="bg-white rounded-lg shadow border border-gray-200 p-6 h-full flex flex-col">
       <div className="mb-4">
-        <div className="flex items-center justify-between gap-4">
-          <h2 className="text-lg font-semibold text-gray-800 flex-shrink-0">
-            {selectedMetricLabel} vs Data
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-gray-800">
+            {chartTitle}
           </h2>
 
-          <select
-            value={selectedMetric}
-            onChange={(e) => setSelectedMetric(e.target.value as MetricType)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {metricOptions.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          {/* Botão dropdown para seleção de métricas */}
+          <div className="relative">
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              Métricas ({selectedMetrics.length})
+              <svg className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {/* Menu dropdown */}
+            {isDropdownOpen && (
+              <>
+                {/* Overlay para fechar o dropdown ao clicar fora */}
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setIsDropdownOpen(false)}
+                />
+
+                <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                  <div className="p-4">
+                    <p className="text-sm font-medium text-gray-700 mb-3">Selecione as métricas:</p>
+                    <div className="space-y-2 max-h-80 overflow-y-auto">
+                      {metricOptions.map(option => (
+                        <label
+                          key={option.value}
+                          className={`flex items-center gap-2 px-3 py-2 border rounded-lg cursor-pointer transition-colors ${
+                            selectedMetrics.includes(option.value as MetricType)
+                              ? 'bg-blue-50 border-blue-300'
+                              : 'bg-white border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedMetrics.includes(option.value as MetricType)}
+                            onChange={() => toggleMetric(option.value as MetricType)}
+                            className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                          />
+                          <div className="flex items-center gap-2 flex-1">
+                            <div
+                              className="w-3 h-3 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: option.color }}
+                            />
+                            <span className="text-sm text-gray-700">{option.label}</span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Aviso quando não há dados do período anterior */}
         {comparisonMode === 'previous' && showComparison && periodFilter === '7days' && !hasPreviousPeriodData && (
           <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
             <p className="text-sm text-yellow-800">
-              ⚠️ Não há dados disponíveis para o período anterior (19/11 a 26/11). Mostrando apenas o período atual.
+              ⚠️ Não há dados disponíveis para o período anterior. Mostrando apenas o período atual.
             </p>
           </div>
         )}
@@ -269,29 +329,35 @@ const ImpressionsChart = ({ data, allData, periodFilter, comparisonMode = 'bench
       <div className="flex-1 min-h-[320px]">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={chartData}>
-            <defs>
-              {/* Gradiente para a área do período atual */}
-              <linearGradient id="colorCurrentPeriod" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.4}/>
-                <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.05}/>
-              </linearGradient>
-              {/* Gradiente para a área do período anterior */}
-              <linearGradient id="colorPreviousPeriod" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#fbbf24" stopOpacity={0.4}/>
-                <stop offset="95%" stopColor="#fbbf24" stopOpacity={0.05}/>
-              </linearGradient>
-            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis
               dataKey="date"
               tick={{ fill: '#6b7280', fontSize: 12 }}
               stroke="#9ca3af"
             />
-            <YAxis
-              tickFormatter={formatYAxis}
-              tick={{ fill: '#6b7280', fontSize: 12 }}
-              stroke="#9ca3af"
-            />
+
+            {/* Eixo Y à esquerda para métricas de contagem */}
+            {hasCountMetrics && (
+              <YAxis
+                yAxisId="count"
+                tickFormatter={formatYAxisCount}
+                tick={{ fill: '#6b7280', fontSize: 12 }}
+                stroke="#9ca3af"
+                orientation="left"
+              />
+            )}
+
+            {/* Eixo Y à direita para métricas de porcentagem */}
+            {hasPercentageMetrics && (
+              <YAxis
+                yAxisId="percentage"
+                tickFormatter={formatYAxisPercentage}
+                tick={{ fill: '#6b7280', fontSize: 12 }}
+                stroke="#9ca3af"
+                orientation="right"
+              />
+            )}
+
             <Tooltip
               formatter={formatTooltip}
               contentStyle={{
@@ -304,63 +370,58 @@ const ImpressionsChart = ({ data, allData, periodFilter, comparisonMode = 'bench
             />
             <Legend wrapperStyle={{ paddingTop: '10px' }} />
 
-            {/* Renderiza período anterior PRIMEIRO para aparecer primeiro na legenda */}
-            {comparisonMode === 'previous' && showComparison && periodFilter === '7days' && (
-              <>
-                {/* Área preenchida do período anterior */}
-                <Area
-                  type="monotone"
-                  dataKey={`${selectedMetric}_anterior`}
-                  fill="url(#colorPreviousPeriod)"
-                  stroke="none"
-                  connectNulls={true}
-                  legendType="none"
-                  isAnimationActive={true}
-                  animationDuration={300}
-                  animationEasing="ease-in-out"
-                />
-                {/* Linha do período anterior */}
-                <Line
-                  type="monotone"
-                  dataKey={`${selectedMetric}_anterior`}
-                  stroke="#fbbf24"
-                  strokeWidth={3}
-                  strokeDasharray="5 5"
-                  dot={{ fill: '#fbbf24', r: 4 }}
-                  activeDot={{ r: 6 }}
-                  connectNulls={true}
-                  isAnimationActive={true}
-                  animationDuration={300}
-                  animationEasing="ease-in-out"
-                  name={`${selectedMetricLabel} (Período Anterior)`}
-                />
-              </>
-            )}
+            {/* Renderiza linhas para cada métrica selecionada */}
+            {selectedMetrics.map(metric => {
+              const option = metricOptions.find(o => o.value === metric);
+              if (!option) return null;
 
-            {/* Área preenchida do período atual */}
-            <Area
-              type="monotone"
-              dataKey={selectedMetric}
-              fill="url(#colorCurrentPeriod)"
-              stroke="none"
-              legendType="none"
-              isAnimationActive={true}
-              animationDuration={300}
-              animationEasing="ease-in-out"
-            />
-            {/* Linha do período atual */}
-            <Line
-              type="monotone"
-              dataKey={selectedMetric}
-              stroke="#0ea5e9"
-              strokeWidth={3}
-              dot={{ fill: '#0ea5e9', r: 4 }}
-              activeDot={{ r: 6 }}
-              isAnimationActive={true}
-              animationDuration={300}
-              animationEasing="ease-in-out"
-              name={selectedMetricLabel}
-            />
+              const yAxisId = option.type === 'percentage' ? 'percentage' : 'count';
+
+              return (
+                <Line
+                  key={metric}
+                  type="monotone"
+                  dataKey={metric}
+                  stroke={option.color}
+                  strokeWidth={2.5}
+                  dot={{ fill: option.color, r: 3 }}
+                  activeDot={{ r: 5 }}
+                  isAnimationActive={true}
+                  animationDuration={300}
+                  animationEasing="ease-in-out"
+                  name={option.label}
+                  yAxisId={yAxisId}
+                  connectNulls={true}
+                />
+              );
+            })}
+
+            {/* Renderiza período anterior se habilitado */}
+            {comparisonMode === 'previous' && showComparison && periodFilter === '7days' && selectedMetrics.map(metric => {
+              const option = metricOptions.find(o => o.value === metric);
+              if (!option) return null;
+
+              const yAxisId = option.type === 'percentage' ? 'percentage' : 'count';
+
+              return (
+                <Line
+                  key={`${metric}_anterior`}
+                  type="monotone"
+                  dataKey={`${metric}_anterior`}
+                  stroke={option.color}
+                  strokeWidth={2.5}
+                  strokeDasharray="5 5"
+                  dot={{ fill: option.color, r: 3 }}
+                  activeDot={{ r: 5 }}
+                  connectNulls={true}
+                  isAnimationActive={true}
+                  animationDuration={300}
+                  animationEasing="ease-in-out"
+                  name={`${option.label} (Período Anterior)`}
+                  yAxisId={yAxisId}
+                />
+              );
+            })}
           </ComposedChart>
         </ResponsiveContainer>
       </div>
