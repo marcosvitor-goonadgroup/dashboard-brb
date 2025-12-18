@@ -160,7 +160,7 @@ const Filters = ({ isOpen, onClose }: FiltersProps) => {
         onClick={onClose}
       />
 
-      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl z-50 transform transition-all duration-300 ease-in-out">
+      <div className="fixed right-0 top-0 h-full w-full sm:max-w-md bg-white shadow-2xl z-50 transform transition-all duration-300 ease-in-out">
         <div className="h-full flex flex-col">
           <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <h2 className="text-xl font-bold text-gray-800">Filtros</h2>

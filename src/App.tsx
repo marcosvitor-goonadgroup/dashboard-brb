@@ -292,38 +292,40 @@ const DashboardContent = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-6">
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-medium text-gray-600">Resultados</h2>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 gap-2">
+              <h2 className="text-xs sm:text-sm font-medium text-gray-600">Resultados</h2>
 
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
                 {/* Botões de Período */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2">
                   <button
                     onClick={() => setPeriodFilter('7days')}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                    className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 ${
                       periodFilter === '7days'
                         ? 'bg-green-600 text-white shadow-md hover:bg-green-700'
                         : 'bg-white/60 backdrop-blur-md text-gray-700 border border-gray-200/50 hover:bg-white/80'
                     }`}
                   >
-                    Últimos 7 dias
+                    <span className="hidden sm:inline">Últimos 7 dias</span>
+                    <span className="sm:hidden">7 dias</span>
                   </button>
                   <button
                     onClick={() => setPeriodFilter('all')}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                    className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 ${
                       periodFilter === 'all'
                         ? 'bg-green-600 text-white shadow-md hover:bg-green-700'
                         : 'bg-white/60 backdrop-blur-md text-gray-700 border border-gray-200/50 hover:bg-white/80'
                     }`}
                   >
-                    Todo o período
+                    <span className="hidden sm:inline">Todo o período</span>
+                    <span className="sm:hidden">Tudo</span>
                   </button>
                 </div>
 
                 {/* Divisória */}
                 {periodFilter === '7days' && (
                   <>
-                    <div className="h-8 w-px bg-gradient-to-b from-transparent via-gray-300 to-transparent"></div>
+                    <div className="hidden sm:block h-8 w-px bg-gradient-to-b from-transparent via-gray-300 to-transparent"></div>
 
                     {/* Botões de Comparação */}
                     <ComparisonToggle

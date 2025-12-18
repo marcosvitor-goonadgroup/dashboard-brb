@@ -102,13 +102,13 @@ const BigNumbers = ({
     : metrics.investimento;
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
       {/* Investimento - usando valor real */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <p className="text-xs font-medium text-gray-500 mb-1">
+      <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
+        <p className="text-[10px] sm:text-xs font-medium text-gray-500 mb-1">
           Investimento
         </p>
-        <p className="text-2xl font-bold text-blue-900">
+        <p className="text-base sm:text-2xl font-bold text-blue-900 leading-tight">
           <AnimatedNumber
             value={displayInvestment}
             formatter={formatCurrency}
@@ -130,11 +130,11 @@ const BigNumbers = ({
       </div>
 
       {/* Impressões - agora com comparação */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <p className="text-xs font-medium text-gray-500 mb-1">
+      <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
+        <p className="text-[10px] sm:text-xs font-medium text-gray-500 mb-1">
           Impressões
         </p>
-        <p className="text-2xl font-bold text-blue-700">
+        <p className="text-base sm:text-2xl font-bold text-blue-700 leading-tight">
           <AnimatedNumber
             value={metrics.impressoes}
             formatter={formatNumber}
@@ -156,11 +156,11 @@ const BigNumbers = ({
       </div>
 
       {/* Views com VTR */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <p className="text-xs font-medium text-gray-500 mb-1">
+      <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
+        <p className="text-[10px] sm:text-xs font-medium text-gray-500 mb-1">
           Views
         </p>
-        <p className="text-2xl font-bold text-blue-600">
+        <p className="text-base sm:text-2xl font-bold text-blue-600 leading-tight">
           <AnimatedNumber
             value={metrics.views}
             formatter={formatNumber}
@@ -200,11 +200,11 @@ const BigNumbers = ({
       </div>
 
       {/* Engajamento com Taxa de Engajamento */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <p className="text-xs font-medium text-gray-500 mb-1">
+      <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
+        <p className="text-[10px] sm:text-xs font-medium text-gray-500 mb-1">
           Engajamento
         </p>
-        <p className="text-2xl font-bold text-blue-500">
+        <p className="text-base sm:text-2xl font-bold text-blue-500 leading-tight">
           <AnimatedNumber
             value={metrics.engajamento}
             formatter={formatNumber}
@@ -244,11 +244,11 @@ const BigNumbers = ({
       </div>
 
       {/* Cliques com CTR */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <p className="text-xs font-medium text-gray-500 mb-1">
+      <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
+        <p className="text-[10px] sm:text-xs font-medium text-gray-500 mb-1">
           Cliques
         </p>
-        <p className="text-2xl font-bold text-blue-400">
+        <p className="text-base sm:text-2xl font-bold text-blue-400 leading-tight">
           <AnimatedNumber
             value={metrics.cliques}
             formatter={formatNumber}
