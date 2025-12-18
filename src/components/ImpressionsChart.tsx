@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { ProcessedCampaignData } from '../types/campaign';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -10,6 +10,8 @@ interface ImpressionsChartProps {
   periodFilter: '7days' | 'all';
   comparisonMode?: 'benchmark' | 'previous';
   showComparison?: boolean;
+  maxAvailableDate?: Date; // Data máxima disponível nos dados
+  sevenDaysAgoFromMaxDate?: Date; // 7 dias atrás a partir da data máxima
 }
 
 type MetricType = 'impressoes' | 'cliques' | 'views' | 'engajamento' | 'ctr' | 'vtr' | 'taxaEngajamento';
@@ -24,14 +26,28 @@ const metricOptions = [
   { value: 'taxaEngajamento', label: 'Taxa Engajamento', type: 'percentage', color: '#6366f1' }
 ];
 
-const ImpressionsChart = ({ data, allData, periodFilter, comparisonMode = 'benchmark', showComparison = false }: ImpressionsChartProps) => {
+const ImpressionsChart = ({
+  data,
+  allData,
+  periodFilter,
+  comparisonMode = 'benchmark',
+  showComparison = false,
+  maxAvailableDate: propMaxAvailableDate,
+  sevenDaysAgoFromMaxDate: propSevenDaysAgoFromMaxDate
+}: ImpressionsChartProps) => {
   const [selectedMetrics, setSelectedMetrics] = useState<MetricType[]>(['impressoes']);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // Sempre considera D-1 (ontem) como o dia mais recente
-  const yesterday = useMemo(() => subDays(new Date(), 1), []);
-  const sevenDaysAgo = useMemo(() => subDays(yesterday, 7), []);
-  const fourteenDaysAgo = useMemo(() => subDays(yesterday, 14), []);
+  // Usa a data máxima disponível passada como prop, ou calcula localmente como fallback
+  const yesterday = useMemo(() => {
+    return propMaxAvailableDate || subDays(new Date(), 1);
+  }, [propMaxAvailableDate]);
+
+  const sevenDaysAgo = useMemo(() => {
+    return propSevenDaysAgoFromMaxDate || subDays(yesterday, 7);
+  }, [propSevenDaysAgoFromMaxDate, yesterday]);
+
+  const fourteenDaysAgo = useMemo(() => subDays(yesterday, 14), [yesterday]);
 
   // Usa allData se disponível, senão usa data (para manter compatibilidade)
   const sourceData = allData || data;
@@ -369,6 +385,79 @@ const ImpressionsChart = ({ data, allData, periodFilter, comparisonMode = 'bench
               animationDuration={150}
             />
             <Legend wrapperStyle={{ paddingTop: '10px' }} />
+
+            {/* Define gradientes para cada métrica */}
+            <defs>
+              {selectedMetrics.map(metric => {
+                const option = metricOptions.find(o => o.value === metric);
+                if (!option) return null;
+
+                return (
+                  <linearGradient key={`gradient-${metric}`} id={`gradient-${metric}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={option.color} stopOpacity={0.3} />
+                    <stop offset="95%" stopColor={option.color} stopOpacity={0} />
+                  </linearGradient>
+                );
+              })}
+              {/* Gradientes para período anterior */}
+              {comparisonMode === 'previous' && showComparison && periodFilter === '7days' && selectedMetrics.map(metric => {
+                const option = metricOptions.find(o => o.value === metric);
+                if (!option) return null;
+
+                return (
+                  <linearGradient key={`gradient-${metric}-anterior`} id={`gradient-${metric}-anterior`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={option.color} stopOpacity={0.2} />
+                    <stop offset="95%" stopColor={option.color} stopOpacity={0} />
+                  </linearGradient>
+                );
+              })}
+            </defs>
+
+            {/* Renderiza áreas com gradiente para cada métrica selecionada */}
+            {selectedMetrics.map(metric => {
+              const option = metricOptions.find(o => o.value === metric);
+              if (!option) return null;
+
+              const yAxisId = option.type === 'percentage' ? 'percentage' : 'count';
+
+              return (
+                <Area
+                  key={`area-${metric}`}
+                  type="monotone"
+                  dataKey={metric}
+                  stroke="none"
+                  fill={`url(#gradient-${metric})`}
+                  isAnimationActive={true}
+                  animationDuration={300}
+                  animationEasing="ease-in-out"
+                  yAxisId={yAxisId}
+                  connectNulls={true}
+                />
+              );
+            })}
+
+            {/* Renderiza áreas do período anterior se habilitado */}
+            {comparisonMode === 'previous' && showComparison && periodFilter === '7days' && selectedMetrics.map(metric => {
+              const option = metricOptions.find(o => o.value === metric);
+              if (!option) return null;
+
+              const yAxisId = option.type === 'percentage' ? 'percentage' : 'count';
+
+              return (
+                <Area
+                  key={`area-${metric}-anterior`}
+                  type="monotone"
+                  dataKey={`${metric}_anterior`}
+                  stroke="none"
+                  fill={`url(#gradient-${metric}-anterior)`}
+                  isAnimationActive={true}
+                  animationDuration={300}
+                  animationEasing="ease-in-out"
+                  yAxisId={yAxisId}
+                  connectNulls={true}
+                />
+              );
+            })}
 
             {/* Renderiza linhas para cada métrica selecionada */}
             {selectedMetrics.map(metric => {

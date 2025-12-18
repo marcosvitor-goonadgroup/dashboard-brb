@@ -376,6 +376,8 @@ const DashboardContent = () => {
                   periodFilter={periodFilter}
                   comparisonMode={comparisonMode}
                   showComparison={periodFilter === '7days'}
+                  maxAvailableDate={maxAvailableDate}
+                  sevenDaysAgoFromMaxDate={sevenDaysAgoFromMaxDate}
                 />
               </div>
             </div>
