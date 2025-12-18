@@ -9,6 +9,7 @@ interface PIInfoCardProps {
 const PIInfoCard = ({ numeroPi }: PIInfoCardProps) => {
   const [piInfo, setPiInfo] = useState<PIInfo[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     const loadPIInfo = async () => {
@@ -66,87 +67,115 @@ const PIInfoCard = ({ numeroPi }: PIInfoCardProps) => {
   }, 0);
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-lg border border-blue-200 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-bold text-gray-800">
-          PI {numeroPi}
-        </h3>
-        <span className="px-3 py-1 bg-blue-600 text-white text-xs font-semibold rounded-full">
-          {firstInfo.status}
-        </span>
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-lg border border-blue-200 overflow-hidden">
+      {/* Header com informações sempre visíveis */}
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold text-gray-800">
+            PI {numeroPi}
+          </h3>
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1 bg-blue-600 text-white text-xs font-semibold rounded-full">
+              {firstInfo.status}
+            </span>
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
+              aria-label={isExpanded ? 'Recolher informações' : 'Expandir informações'}
+            >
+              <svg
+                className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Informações Principais - Sempre visíveis */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="bg-white rounded-lg p-4 shadow-sm">
+            <p className="text-xs font-medium text-gray-500 mb-1">Período</p>
+            <p className="text-sm font-semibold text-gray-800">
+              {firstInfo.inicio} a {firstInfo.fim}
+            </p>
+          </div>
+
+          <div className="bg-white rounded-lg p-4 shadow-sm">
+            <p className="text-xs font-medium text-gray-500 mb-1">Investimento Previsto</p>
+            <p className="text-sm font-semibold text-gray-800">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalInvestimento)}
+            </p>
+          </div>
+        </div>
+
+        {/* Objetivo - Sempre visível */}
+        {firstInfo.objetivo && (
+          <div className="bg-white rounded-lg p-4 shadow-sm">
+            <p className="text-xs font-medium text-gray-500 mb-2">Objetivo</p>
+            <p className="text-sm text-gray-700 leading-relaxed">{firstInfo.objetivo}</p>
+          </div>
+        )}
       </div>
 
-      {/* Informações Principais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="bg-white rounded-lg p-4 shadow-sm">
-          <p className="text-xs font-medium text-gray-500 mb-1">Período</p>
-          <p className="text-sm font-semibold text-gray-800">
-            {firstInfo.inicio} a {firstInfo.fim}
-          </p>
-        </div>
-
-        <div className="bg-white rounded-lg p-4 shadow-sm">
-          <p className="text-xs font-medium text-gray-500 mb-1">Investimento Previsto</p>
-          <p className="text-sm font-semibold text-gray-800">
-            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalInvestimento)}
-          </p>
-        </div>
-      </div>
-
-      {/* Objetivo */}
-      {firstInfo.objetivo && (
-        <div className="bg-white rounded-lg p-4 shadow-sm mb-4">
-          <p className="text-xs font-medium text-gray-500 mb-2">Objetivo</p>
-          <p className="text-sm text-gray-700 leading-relaxed">{firstInfo.objetivo}</p>
-        </div>
-      )}
-
-      {/* Detalhes por Veículo */}
-      <div className="bg-white rounded-lg p-4 shadow-sm mb-4">
-        <p className="text-xs font-medium text-gray-500 mb-3">Detalhamento por Veículo</p>
-        <div className="space-y-3">
-          {piInfo.map((info, index) => (
-            <div key={index} className="border-l-4 border-blue-500 pl-3 py-2">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">{info.veiculo}</p>
-                  <p className="text-xs text-gray-600">
-                    {info.canal} • {info.formato} • {info.modeloCompra}
-                  </p>
+      {/* Conteúdo expansível */}
+      <div
+        className={`transition-all duration-300 ease-in-out overflow-hidden ${
+          isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+        }`}
+      >
+        <div className="px-6 pb-6 space-y-4">
+          {/* Detalhes por Veículo */}
+          <div className="bg-white rounded-lg p-4 shadow-sm">
+            <p className="text-xs font-medium text-gray-500 mb-3">Detalhamento por Veículo</p>
+            <div className="space-y-3">
+              {piInfo.map((info, index) => (
+                <div key={index} className="border-l-4 border-blue-500 pl-3 py-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">{info.veiculo}</p>
+                      <p className="text-xs text-gray-600">
+                        {info.canal} • {info.formato} • {info.modeloCompra}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-gray-800">{info.totalBruto}</p>
+                      <p className="text-xs text-gray-600">{info.quantidade} {info.modeloCompra}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-gray-800">{info.totalBruto}</p>
-                  <p className="text-xs text-gray-600">{info.quantidade} {info.modeloCompra}</p>
-                </div>
-              </div>
+              ))}
             </div>
-          ))}
+          </div>
+
+          {/* Segmentação e Público */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {firstInfo.publico && (
+              <div className="bg-white rounded-lg p-4 shadow-sm">
+                <p className="text-xs font-medium text-gray-500 mb-2">Público</p>
+                <p className="text-sm text-gray-700">{firstInfo.publico}</p>
+              </div>
+            )}
+
+            {firstInfo.praca && (
+              <div className="bg-white rounded-lg p-4 shadow-sm">
+                <p className="text-xs font-medium text-gray-500 mb-2">Praça</p>
+                <p className="text-sm text-gray-700">{firstInfo.praca}</p>
+              </div>
+            )}
+          </div>
+
+          {firstInfo.segmentacao && (
+            <div className="bg-white rounded-lg p-4 shadow-sm">
+              <p className="text-xs font-medium text-gray-500 mb-2">Segmentação</p>
+              <p className="text-sm text-gray-700">{firstInfo.segmentacao}</p>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Segmentação e Público */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {firstInfo.publico && (
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <p className="text-xs font-medium text-gray-500 mb-2">Público</p>
-            <p className="text-sm text-gray-700">{firstInfo.publico}</p>
-          </div>
-        )}
-
-        {firstInfo.praca && (
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <p className="text-xs font-medium text-gray-500 mb-2">Praça</p>
-            <p className="text-sm text-gray-700">{firstInfo.praca}</p>
-          </div>
-        )}
-      </div>
-
-      {firstInfo.segmentacao && (
-        <div className="bg-white rounded-lg p-4 shadow-sm mt-4">
-          <p className="text-xs font-medium text-gray-500 mb-2">Segmentação</p>
-          <p className="text-sm text-gray-700">{firstInfo.segmentacao}</p>
-        </div>
-      )}
     </div>
   );
 };

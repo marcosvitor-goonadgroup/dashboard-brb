@@ -10,6 +10,7 @@ interface VehicleMetricsProps {
   vehicleBenchmarks?: Map<string, { ctr: number; vtr: number; taxaEngajamento: number }>;
   selectedVehicle?: string | null;
   onSelectVehicle?: (vehicle: string | null) => void;
+  selectedPI?: string | null;
 }
 
 interface VehicleData {
@@ -107,7 +108,7 @@ const SocialIcon = ({ name }: { name: string }) => {
   );
 };
 
-const VehicleMetrics = ({ data, periodFilter, filters, vehicleBenchmarks, selectedVehicle, onSelectVehicle }: VehicleMetricsProps) => {
+const VehicleMetrics = ({ data, periodFilter, filters, vehicleBenchmarks, selectedVehicle, onSelectVehicle, selectedPI }: VehicleMetricsProps) => {
   // Detecta se há filtros ativos
   const hasActiveFilters = () => {
     if (!filters) return false;
@@ -120,6 +121,11 @@ const VehicleMetrics = ({ data, periodFilter, filters, vehicleBenchmarks, select
 
     // Verifica se há filtros de veículo, tipo de compra ou campanha
     if (filters.veiculo.length > 0 || filters.tipoDeCompra.length > 0 || filters.campanha.length > 0) {
+      return true;
+    }
+
+    // Verifica se há PI selecionado
+    if (selectedPI) {
       return true;
     }
 

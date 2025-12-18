@@ -74,11 +74,25 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
           item => !excludedCampaigns.includes(item.campanha)
         );
 
-        // Corrige PI '20390' para '20392'
-        const correctedCampaignData = filteredCampaignData.map(item => ({
-          ...item,
-          numeroPi: item.numeroPi === '20390' ? '20392' : item.numeroPi
-        }));
+        // Normaliza números de PI removendo zeros à esquerda e corrige PI '20390' para '20392'
+        const correctedCampaignData = filteredCampaignData.map(item => {
+          let normalizedPI = item.numeroPi;
+
+          // Remove zeros à esquerda do PI
+          if (normalizedPI) {
+            normalizedPI = normalizedPI.replace(/^0+/, '') || '0';
+          }
+
+          // Corrige PI específico
+          if (normalizedPI === '20390') {
+            normalizedPI = '20392';
+          }
+
+          return {
+            ...item,
+            numeroPi: normalizedPI
+          };
+        });
 
         // Calcula investimento real para cada item
         const dataWithRealInvestment = correctedCampaignData.map(item => ({

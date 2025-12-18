@@ -14,6 +14,7 @@ interface BigNumbersProps {
   };
   comparisonMode?: 'benchmark' | 'previous';
   previousPeriodMetrics?: CampaignMetrics | null;
+  selectedPI?: string | null;
 }
 
 const formatNumber = (num: number): string => {
@@ -39,7 +40,8 @@ const BigNumbers = ({
   periodFilter = 'all',
   generalBenchmarks,
   comparisonMode = 'benchmark',
-  previousPeriodMetrics
+  previousPeriodMetrics,
+  selectedPI
 }: BigNumbersProps) => {
   // Detecta se há filtros ativos
   const hasActiveFilters = () => {
@@ -53,6 +55,11 @@ const BigNumbers = ({
 
     // Verifica se há filtros de veículo, tipo de compra ou campanha
     if (filters.veiculo.length > 0 || filters.tipoDeCompra.length > 0 || filters.campanha.length > 0) {
+      return true;
+    }
+
+    // Verifica se há PI selecionado
+    if (selectedPI) {
       return true;
     }
 

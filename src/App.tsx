@@ -341,6 +341,7 @@ const DashboardContent = () => {
               generalBenchmarks={generalBenchmarks}
               comparisonMode={comparisonMode}
               previousPeriodMetrics={previousPeriodMetrics}
+              selectedPI={selectedPI}
             />
           </div>
 
@@ -392,6 +393,7 @@ const DashboardContent = () => {
               vehicleBenchmarks={vehicleBenchmarks}
               selectedVehicle={selectedVehicle}
               onSelectVehicle={setSelectedVehicle}
+              selectedPI={selectedPI}
             />
           </div>
 
