@@ -217,7 +217,7 @@ const AIAnalysis = ({ data, allData, periodFilter, selectedCampaign }: AIAnalysi
             </svg>
           </div>
           <h2 className="text-lg font-semibold text-gray-800">
-            Análise Semanal por IA
+            Análise Semanal
           </h2>
         </div>
 
@@ -353,7 +353,7 @@ const AIAnalysis = ({ data, allData, periodFilter, selectedCampaign }: AIAnalysi
             />
           </svg>
           <span>
-            Análise gerada por IA com base nos dados da semana e benchmarks
+            Análise gerada com base nos dados da semana e benchmarks
           </span>
         </div>
       </div>

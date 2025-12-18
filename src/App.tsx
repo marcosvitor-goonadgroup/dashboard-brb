@@ -10,6 +10,7 @@ import CreativePerformance from './components/CreativePerformance';
 import SearchTermsAnalysis from './components/SearchTermsAnalysis';
 import ComparisonToggle from './components/ComparisonToggle';
 import AIAnalysis from './components/AIAnalysis';
+import OnDemandAnalysis from './components/OnDemandAnalysis';
 import CreativeAnalysis from './components/CreativeAnalysis';
 import ParticlesBackground from './components/ParticlesBackground';
 import PIInfoCard from './components/PIInfoCard';
@@ -407,7 +408,14 @@ const DashboardContent = () => {
               selectedCampaign={selectedCampaign}
             />
           </div>
-         
+
+          <div>
+            <OnDemandAnalysis
+              data={displayData}
+              allData={data}
+              periodFilter={periodFilter}
+            />
+          </div>
 
           <div>
             <CreativePerformance

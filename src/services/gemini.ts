@@ -681,3 +681,153 @@ export const generateCreativeAnalysis = async (
     throw new Error(error.message || 'Erro ao gerar análise de criativos');
   }
 };
+
+/**
+ * Monta o prompt para análise sob demanda (sem comparação com período anterior)
+ */
+const buildOnDemandAnalysisPrompt = async (
+  data: ProcessedCampaignData[],
+  allDataForBenchmark: ProcessedCampaignData[]
+): Promise<string> => {
+  const campaigns = aggregateByCampaign(data);
+
+  // Importa o serviço de benchmark dinâmico
+  const { fetchAllBenchmarks } = await import('./benchmarkService');
+  const benchmarksMap = await fetchAllBenchmarks();
+
+  console.log('Métricas Agregadas por Campanha:', JSON.stringify(campaigns, null, 2));
+
+  // Período dos dados
+  const dates = data.map(d => d.date);
+  const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+  const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+  const periodStart = format(minDate, 'dd/MM/yyyy');
+  const periodEnd = format(maxDate, 'dd/MM/yyyy');
+
+  // Calcula benchmark GERAL usando TODOS os dados SEM FILTROS (allDataForBenchmark)
+  const allCampaigns = aggregateByCampaign(allDataForBenchmark);
+  const totalImpressoes = allCampaigns.reduce((sum, c) => sum + c.totalImpressoes, 0);
+  const totalCliques = allCampaigns.reduce((sum, c) => sum + c.totalCliques, 0);
+  const totalViews100 = allCampaigns.reduce((sum, c) => sum + c.totalViews100, 0);
+  const totalEngajamentos = allCampaigns.reduce((sum, c) => sum + c.totalEngajamentos, 0);
+
+  const benchGeralCtr = totalImpressoes > 0 ? (totalCliques / totalImpressoes) * 100 : 0;
+  const benchGeralVtr = totalImpressoes > 0 ? (totalViews100 / totalImpressoes) * 100 : 0;
+  const benchGeralEng = totalImpressoes > 0 ? (totalEngajamentos / totalImpressoes) * 100 : 0;
+
+  let textoDados = `
+
+BENCHMARK GERAL (TOTAL): CTR ${benchGeralCtr.toFixed(2)}%, VTR ${benchGeralVtr.toFixed(2)}%, Engajamento ${benchGeralEng.toFixed(2)}%
+`;
+
+  // Itera por cada campanha
+  campaigns.forEach(campaign => {
+    const { campanha, ctr, vtr, taxaEngajamento, totalImpressoes } = campaign;
+
+    textoDados += `
+
+📊 CAMPANHA: ${campanha}
+   Performance Geral: CTR ${ctr.toFixed(2)}%, VTR ${vtr.toFixed(2)}%, Engajamento ${taxaEngajamento.toFixed(2)}% (${formatNumber(totalImpressoes)} impressões)
+
+   Veículos:`;
+
+    // Itera por cada veículo da campanha
+    campaign.veiculos.forEach(vehicle => {
+      const { veiculo, tipoDeCompra, ctr: vCtr, vtr: vVtr, taxaEngajamento: vEng, impressoes } = vehicle;
+
+      // Buscar benchmark dinâmico (das APIs) - estático + vídeo somados
+      const benchmarkKeyEstatico = `${veiculo.toLowerCase()}|${tipoDeCompra.toLowerCase()}|estatico`;
+      const benchmarkKeyVideo = `${veiculo.toLowerCase()}|${tipoDeCompra.toLowerCase()}|video`;
+
+      const benchEstatico = benchmarksMap.get(benchmarkKeyEstatico);
+      const benchVideo = benchmarksMap.get(benchmarkKeyVideo);
+
+      // Usa o benchmark que existir, priorizando estático
+      const benchmarkToUse = benchEstatico || benchVideo;
+
+      const vBenchCtr = benchmarkToUse?.ctr ?? benchGeralCtr;
+      const vBenchVtr = benchmarkToUse?.vtr ?? benchGeralVtr;
+      const vBenchEng = benchmarkToUse?.taxaEngajamento ?? benchGeralEng;
+
+      // IGNORA métricas zeradas
+      const metricsText: string[] = [];
+      if (vCtr > 0) metricsText.push(`CTR ${vCtr.toFixed(2)}%`);
+      if (vVtr > 0) metricsText.push(`VTR ${vVtr.toFixed(2)}%`);
+      if (vEng > 0) metricsText.push(`Engajamento ${vEng.toFixed(2)}%`);
+
+      const benchText: string[] = [];
+      if (vCtr > 0) benchText.push(`CTR ${vBenchCtr.toFixed(2)}%`);
+      if (vVtr > 0) benchText.push(`VTR ${vBenchVtr.toFixed(2)}%`);
+      if (vEng > 0) benchText.push(`Engajamento ${vBenchEng.toFixed(2)}%`);
+
+      textoDados += `
+      • ${veiculo} (${tipoDeCompra}) - ${formatNumber(impressoes)} impressões
+        Atual: ${metricsText.join(', ')}
+        Benchmark: ${benchText.join(', ')}`;
+    });
+  });
+
+  return `
+Você é um analista de performance de mídia online.
+Analise o período de ${periodStart} a ${periodEnd}.
+
+DADOS:
+${textoDados}
+
+REGRAS IMPORTANTES:
+1. NÃO analise métricas zeradas (0.00%)
+2. Compare cada campanha com o BENCHMARK GERAL mostrado no topo
+3. Compare cada veículo com seu BENCHMARK ESPECÍFICO
+4. NÃO mencione período anterior, apenas compare com benchmarks
+
+FORMATO DA RESPOSTA (EXATAMENTE 2 PARÁGRAFOS):
+
+Parágrafo 1 - CAMPANHAS:
+Analise a performance GERAL de cada campanha vs Benchmark Geral. Mencione explicitamente o nome das campanhas e se estão acima/abaixo do benchmark. Cite números específicos.
+
+Parágrafo 2 - VEÍCULOS:
+Analise a performance dos VEÍCULOS dentro de cada campanha vs seus benchmarks específicos. Destaque os veículos com melhor e pior performance. Cite números específicos. Identifique padrões claros (ex: todos os veículos de uma campanha estão abaixo do bench).
+
+IMPORTANTE:
+- Seja direto e factual
+- NÃO dê sugestões ou recomendações
+- Foque na LEITURA do que está acontecendo
+- Use português profissional
+- Cite números específicos
+- Máximo 2 parágrafos
+  `;
+};
+
+/**
+ * Gera análise sob demanda para qualquer período (sem salvar automaticamente)
+ * @param data Dados filtrados para análise (com filtros aplicados)
+ * @param allDataForBenchmark Todos os dados sem filtros (para cálculo correto dos benchmarks)
+ */
+export const generateOnDemandAnalysis = async (
+  data: ProcessedCampaignData[],
+  allDataForBenchmark: ProcessedCampaignData[]
+): Promise<string> => {
+  try {
+    if (data.length === 0) {
+      throw new Error('Não há dados disponíveis para análise.');
+    }
+
+    console.log('🔄 Gerando análise sob demanda...');
+    console.log('📊 Dados para análise:', data.length, 'registros');
+    console.log('📊 Dados para benchmark:', allDataForBenchmark.length, 'registros');
+
+    // Monta o prompt
+    const prompt = await buildOnDemandAnalysisPrompt(data, allDataForBenchmark);
+
+    // Chama a API
+    const analysis = await callGeminiAPI(prompt);
+
+    console.log('✅ Análise sob demanda gerada com sucesso');
+
+    return analysis;
+
+  } catch (error: any) {
+    console.error('Erro ao gerar análise sob demanda:', error);
+    throw new Error(error.message || 'Erro ao gerar análise');
+  }
+};
