@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { ProcessedCampaignData } from '../types/campaign';
 import { generateWeeklyAnalysis } from '../services/gemini';
-import { getAnalysisHistory, getAnalysisByDate } from '../services/cache';
+import { getAnalysisHistory, getAnalysisByDate, setCachedAnalysis } from '../services/cache';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import ShinyText from './ShinyText';
@@ -175,31 +175,12 @@ const AIAnalysis = ({ data, allData, periodFilter, selectedCampaign }: AIAnalysi
 
     setSaving(true);
     try {
-      // Determina a URL base dependendo do ambiente
-      const apiUrl = import.meta.env.PROD
-        ? '/api/analysis'
-        : 'http://localhost:3000/api/analysis';
+      console.log('📤 Salvando análise editada...');
 
-      console.log('📤 Enviando análise editada para:', apiUrl);
+      // Usa o serviço de cache que já tem a lógica correta para produção (Redis) e desenvolvimento (localStorage)
+      await setCachedAnalysis(dataKey, editedAnalysis);
 
-      // Salvar diretamente no cache via API
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          dataKey,
-          analysis: editedAnalysis,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('❌ Erro na resposta:', response.status, errorData);
-        throw new Error('Erro ao salvar análise editada');
-      }
-
+      // Atualiza a análise exibida
       setAnalysis(editedAnalysis);
       setShowEditModal(false);
       console.log('✅ Análise editada salva com sucesso');
