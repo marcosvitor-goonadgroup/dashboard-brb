@@ -1,8 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { CampaignProvider, useCampaign } from './contexts/CampaignContext';
+import CampaignDashboard from './pages/CampaignDashboard';
+import PIDashboard from './pages/PIDashboard';
 import Header from './components/Header';
+import Footer from './components/Footer';
 import BigNumbers from './components/BigNumbers';
-import CampaignList from './components/CampaignList';
 import ImpressionsChart from './components/ImpressionsChart';
 import Filters from './components/Filters';
 import VehicleMetrics from './components/VehicleMetrics';
@@ -14,14 +16,14 @@ import OnDemandAnalysis from './components/OnDemandAnalysis';
 import CreativeAnalysis from './components/CreativeAnalysis';
 import ParticlesBackground from './components/ParticlesBackground';
 import PIInfoCard from './components/PIInfoCard';
+import ClientCampaignList from './components/ClientCampaignList';
 import { fetchSearchTermsData } from './services/api';
 import { ProcessedSearchData } from './types/campaign';
-import { subDays } from 'date-fns';
+import { subDays, format } from 'date-fns';
 
 const DashboardContent = () => {
-  const { loading, error, campaigns, filteredData, filters, setFilters, data } = useCampaign();
+  const { loading, error, filteredData, filters, setFilters, data } = useCampaign();
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
   const [periodFilter, setPeriodFilter] = useState<'7days' | 'all'>('7days');
   const [comparisonMode, setComparisonMode] = useState<'benchmark' | 'previous'>('benchmark');
   const [searchTermsData, setSearchTermsData] = useState<ProcessedSearchData[]>([]);
@@ -29,54 +31,46 @@ const DashboardContent = () => {
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
   const [selectedPI, setSelectedPI] = useState<string | null>(null);
 
-  // Load search terms data
   useEffect(() => {
     const loadSearchTerms = async () => {
       try {
         setLoadingSearchTerms(true);
-        const data = await fetchSearchTermsData();
-        setSearchTermsData(data);
+        const result = await fetchSearchTermsData();
+        setSearchTermsData(result);
       } catch (err) {
         console.error('Erro ao carregar termos de busca:', err);
       } finally {
         setLoadingSearchTerms(false);
       }
     };
-
     loadSearchTerms();
   }, []);
 
-  // Muda automaticamente para "Todo o período" quando filtro de datas é aplicado
   useEffect(() => {
     if (filters.dateRange.start || filters.dateRange.end) {
       setPeriodFilter('all');
     }
   }, [filters.dateRange.start, filters.dateRange.end]);
 
-  // Calcula a data máxima disponível nos dados (exclui D-1)
-  // IMPORTANTE: usa 'data' (não filtrado) para calcular corretamente os últimos 7 dias disponíveis
   const maxAvailableDate = useMemo(() => {
     const yesterday = subDays(new Date(), 1);
-    const datesInData = data
-      .map(item => item.date)
-      .filter(date => date <= yesterday);
-
+    const datesInData = data.map(item => item.date).filter(date => date <= yesterday);
     if (datesInData.length === 0) return yesterday;
     return new Date(Math.max(...datesInData.map(d => d.getTime())));
   }, [data]);
 
-  // Calcula 7 dias atrás baseado na data máxima disponível
-  const sevenDaysAgoFromMaxDate = useMemo(() => {
-    return subDays(maxAvailableDate, 7);
-  }, [maxAvailableDate]);
+  const sevenDaysAgoFromMaxDate = useMemo(() => subDays(maxAvailableDate, 7), [maxAvailableDate]);
 
-  // Calcula os benchmarks gerais a partir de TODOS os dados (sem filtros) - CÁLCULO LOCAL
+  const minAvailableDate = useMemo(() => {
+    if (data.length === 0) return new Date();
+    return new Date(Math.min(...data.map(d => d.date.getTime())));
+  }, [data]);
+
   const generalBenchmarks = useMemo(() => {
     const totalImpressoes = data.reduce((sum, item) => sum + item.impressions, 0);
     const totalCliques = data.reduce((sum, item) => sum + item.clicks, 0);
     const totalVideoCompletions = data.reduce((sum, item) => sum + item.videoCompletions, 0);
     const totalEngajamento = data.reduce((sum, item) => sum + item.totalEngagements, 0);
-
     return {
       ctr: totalImpressoes > 0 ? (totalCliques / totalImpressoes) * 100 : 0,
       vtr: totalImpressoes > 0 ? (totalVideoCompletions / totalImpressoes) * 100 : 0,
@@ -84,22 +78,13 @@ const DashboardContent = () => {
     };
   }, [data]);
 
-  // Calcula os benchmarks por veículo a partir de TODOS os dados (sem filtros)
   const vehicleBenchmarks = useMemo(() => {
     const benchmarksByVehicle = new Map<string, { ctr: number; vtr: number; taxaEngajamento: number }>();
-
-    // Agrupa dados por veículo
-    const vehicleMap = new Map<string, {
-      impressoes: number;
-      cliques: number;
-      videoCompletions: number;
-      engajamento: number;
-    }>();
+    const vehicleMap = new Map<string, { impressoes: number; cliques: number; videoCompletions: number; engajamento: number }>();
 
     data.forEach(item => {
       const veiculo = item.veiculo;
       if (!veiculo) return;
-
       if (vehicleMap.has(veiculo)) {
         const existing = vehicleMap.get(veiculo)!;
         existing.impressoes += item.impressions;
@@ -116,7 +101,6 @@ const DashboardContent = () => {
       }
     });
 
-    // Calcula métricas para cada veículo
     vehicleMap.forEach((metrics, veiculo) => {
       benchmarksByVehicle.set(veiculo, {
         ctr: metrics.impressoes > 0 ? (metrics.cliques / metrics.impressoes) * 100 : 0,
@@ -131,47 +115,31 @@ const DashboardContent = () => {
   const displayData = useMemo(() => {
     let filteredDataCopy = filteredData;
 
-    // Sempre exclui o dia atual (considera apenas até D-1)
     const yesterday = subDays(new Date(), 1);
     filteredDataCopy = filteredDataCopy.filter(item => item.date <= yesterday);
 
-    // Filter by period - usa os últimos 7 dias disponíveis nos dados
     if (periodFilter === '7days') {
       filteredDataCopy = filteredDataCopy.filter(item => item.date >= sevenDaysAgoFromMaxDate);
     }
 
-    // Filter by selected campaign
-    if (selectedCampaign) {
-      filteredDataCopy = filteredDataCopy.filter(d => d.campanha === selectedCampaign);
-    }
-
-    // Filter by selected vehicle
     if (selectedVehicle) {
       filteredDataCopy = filteredDataCopy.filter(d => d.veiculo === selectedVehicle);
     }
 
-    // Filter by selected PI
     if (selectedPI) {
       filteredDataCopy = filteredDataCopy.filter(d => d.numeroPi === selectedPI);
     }
 
     return filteredDataCopy;
-  }, [filteredData, selectedCampaign, periodFilter, selectedVehicle, selectedPI, sevenDaysAgoFromMaxDate]);
+  }, [filteredData, periodFilter, selectedVehicle, selectedPI, sevenDaysAgoFromMaxDate]);
 
-  // Calcula as métricas do período anterior (para comparação)
   const previousPeriodMetrics = useMemo(() => {
     if (periodFilter !== '7days') return null;
-
-    // Usa 14 dias atrás baseado na data máxima disponível
     const fourteenDaysAgoFromMaxDate = subDays(maxAvailableDate, 14);
 
     let previousData = filteredData.filter(item =>
       item.date >= fourteenDaysAgoFromMaxDate && item.date < sevenDaysAgoFromMaxDate
     );
-
-    if (selectedCampaign) {
-      previousData = previousData.filter(d => d.campanha === selectedCampaign);
-    }
 
     const totalInvestimento = previousData.reduce((sum, item) => sum + item.cost, 0);
     const totalImpressoes = previousData.reduce((sum, item) => sum + item.impressions, 0);
@@ -194,10 +162,9 @@ const DashboardContent = () => {
       vtr: totalImpressoes > 0 ? (totalVideoCompletions / totalImpressoes) * 100 : 0,
       taxaEngajamento: totalImpressoes > 0 ? (totalEngajamento / totalImpressoes) * 100 : 0
     };
-  }, [filteredData, selectedCampaign, periodFilter, maxAvailableDate, sevenDaysAgoFromMaxDate]);
+  }, [filteredData, periodFilter, maxAvailableDate, sevenDaysAgoFromMaxDate]);
 
   const displayMetrics = useMemo(() => {
-    // Calculate metrics based on displayData (which includes period filter)
     const totalInvestimento = displayData.reduce((sum, item) => sum + item.cost, 0);
     const totalInvestimentoReal = displayData.reduce((sum, item) => sum + (item.realInvestment || 0), 0);
     const totalImpressoes = displayData.reduce((sum, item) => sum + item.impressions, 0);
@@ -234,19 +201,12 @@ const DashboardContent = () => {
     if (filters.tipoDeCompra.length > 0) count += filters.tipoDeCompra.length;
     if (filters.campanha.length > 0) count += filters.campanha.length;
     if (filters.numeroPi) count++;
-    if (selectedCampaign) count++;
     if (selectedVehicle) count++;
     if (selectedPI) count++;
     return count;
-  }, [filters, selectedCampaign, selectedVehicle, selectedPI]);
-
-  const handleSelectCampaign = (campaignName: string) => {
-    setSelectedCampaign(campaignName === selectedCampaign ? null : (campaignName || null));
-  };
+  }, [filters, selectedVehicle, selectedPI]);
 
   const handleClearFilters = () => {
-    // Limpa todos os filtros exceto o período
-    setSelectedCampaign(null);
     setSelectedVehicle(null);
     setSelectedPI(null);
     setFilters({
@@ -280,9 +240,9 @@ const DashboardContent = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 relative">
+    <div className="min-h-screen bg-[#f1f1f1] relative">
       <ParticlesBackground />
-      <div className="relative z-10">
+      <div className="relative z-10 max-w-[1440px] mx-auto px-3 sm:px-6 pt-3 sm:pt-6 pb-3 sm:pb-6">
         <Header
           onOpenFilters={() => setIsFiltersOpen(true)}
           onClearFilters={handleClearFilters}
@@ -290,164 +250,167 @@ const DashboardContent = () => {
         />
         <Filters isOpen={isFiltersOpen} onClose={() => setIsFiltersOpen(false)} />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-6">
-          <div>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 gap-2">
-              <h2 className="text-xs sm:text-sm font-medium text-gray-600">Resultados</h2>
+        <main>
+          <div className="space-y-6">
+            <div>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 gap-2">
+                <h2 className="text-xs sm:text-sm font-medium text-gray-600">
+                  Resultados{' '}
+                  <span className="text-gray-400 font-normal">
+                    {format(periodFilter === '7days' ? sevenDaysAgoFromMaxDate : minAvailableDate, 'dd/MM/yyyy')} à {format(maxAvailableDate, 'dd/MM/yyyy')}
+                  </span>
+                </h2>
 
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
-                {/* Botões de Período */}
-                <div className="flex items-center gap-1 sm:gap-2">
-                  <button
-                    onClick={() => setPeriodFilter('7days')}
-                    className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 ${
-                      periodFilter === '7days'
-                        ? 'bg-green-600 text-white shadow-md hover:bg-green-700'
-                        : 'bg-white/60 backdrop-blur-md text-gray-700 border border-gray-200/50 hover:bg-white/80'
-                    }`}
-                  >
-                    <span className="hidden sm:inline">Últimos 7 dias</span>
-                    <span className="sm:hidden">7 dias</span>
-                  </button>
-                  <button
-                    onClick={() => setPeriodFilter('all')}
-                    className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 ${
-                      periodFilter === 'all'
-                        ? 'bg-green-600 text-white shadow-md hover:bg-green-700'
-                        : 'bg-white/60 backdrop-blur-md text-gray-700 border border-gray-200/50 hover:bg-white/80'
-                    }`}
-                  >
-                    <span className="hidden sm:inline">Todo o período</span>
-                    <span className="sm:hidden">Tudo</span>
-                  </button>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <button
+                      onClick={() => setPeriodFilter('7days')}
+                      className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 ${
+                        periodFilter === '7days'
+                          ? 'bg-green-600 text-white shadow-md hover:bg-green-700'
+                          : 'bg-white/60 backdrop-blur-md text-gray-700 border border-gray-200/50 hover:bg-white/80'
+                      }`}
+                    >
+                      <span className="hidden sm:inline">Últimos 7 dias</span>
+                      <span className="sm:hidden">7 dias</span>
+                    </button>
+                    <button
+                      onClick={() => setPeriodFilter('all')}
+                      className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 ${
+                        periodFilter === 'all'
+                          ? 'bg-green-600 text-white shadow-md hover:bg-green-700'
+                          : 'bg-white/60 backdrop-blur-md text-gray-700 border border-gray-200/50 hover:bg-white/80'
+                      }`}
+                    >
+                      <span className="hidden sm:inline">Todo o período</span>
+                      <span className="sm:hidden">Tudo</span>
+                    </button>
+                  </div>
+
+                  {periodFilter === '7days' && (
+                    <>
+                      <div className="hidden sm:block h-8 w-px bg-gradient-to-b from-transparent via-gray-300 to-transparent"></div>
+                      <ComparisonToggle
+                        comparisonMode={comparisonMode}
+                        onModeChange={setComparisonMode}
+                      />
+                    </>
+                  )}
                 </div>
-
-                {/* Divisória */}
-                {periodFilter === '7days' && (
-                  <>
-                    <div className="hidden sm:block h-8 w-px bg-gradient-to-b from-transparent via-gray-300 to-transparent"></div>
-
-                    {/* Botões de Comparação */}
-                    <ComparisonToggle
-                      comparisonMode={comparisonMode}
-                      onModeChange={setComparisonMode}
-                    />
-                  </>
-                )}
               </div>
+              <BigNumbers
+                metrics={displayMetrics}
+                filters={filters}
+                periodFilter={periodFilter}
+                generalBenchmarks={generalBenchmarks}
+                comparisonMode={comparisonMode}
+                previousPeriodMetrics={previousPeriodMetrics}
+                selectedPI={selectedPI}
+              />
             </div>
-            <BigNumbers
-              metrics={displayMetrics}
-              filters={filters}
-              periodFilter={periodFilter}
-              generalBenchmarks={generalBenchmarks}
-              comparisonMode={comparisonMode}
-              previousPeriodMetrics={previousPeriodMetrics}
-              selectedPI={selectedPI}
-            />
-          </div>
 
-          {/* Card de Informações do PI */}
-          {selectedPI && (
+            {selectedPI && (
+              <div>
+                <PIInfoCard numeroPi={selectedPI} campaignData={displayData} />
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-[35fr_65fr] gap-6 items-stretch">
+              <ClientCampaignList
+                data={filteredData.filter(item => {
+                  const yesterday = subDays(new Date(), 1);
+                  return item.date <= yesterday;
+                })}
+                selectedPI={selectedPI}
+                onSelectPI={setSelectedPI}
+              />
+              <ImpressionsChart
+                data={displayData}
+                allData={filteredData}
+                periodFilter={periodFilter}
+                comparisonMode={comparisonMode}
+                showComparison={periodFilter === '7days'}
+                maxAvailableDate={maxAvailableDate}
+                sevenDaysAgoFromMaxDate={sevenDaysAgoFromMaxDate}
+              />
+            </div>
+
             <div>
-              <PIInfoCard numeroPi={selectedPI} />
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:items-stretch">
-            <div className="lg:col-span-4 flex">
-              <div className="w-full">
-                <CampaignList
-                  campaigns={campaigns}
-                  selectedCampaign={selectedCampaign}
-                  onSelectCampaign={handleSelectCampaign}
-                  data={filteredData}
-                  filters={filters}
-                  periodFilter={periodFilter}
-                  selectedPI={selectedPI}
-                  onSelectPI={setSelectedPI}
-                  selectedVehicle={selectedVehicle}
-                />
-              </div>
+              <VehicleMetrics
+                data={displayData}
+                selectedCampaign={null}
+                periodFilter={periodFilter}
+                filters={filters}
+                vehicleBenchmarks={vehicleBenchmarks}
+                selectedVehicle={selectedVehicle}
+                onSelectVehicle={setSelectedVehicle}
+                selectedPI={selectedPI}
+              />
             </div>
 
-            <div className="lg:col-span-8 flex">
-              <div className="w-full">
-                <ImpressionsChart
-                  data={displayData}
-                  allData={filteredData}
-                  periodFilter={periodFilter}
-                  comparisonMode={comparisonMode}
-                  showComparison={periodFilter === '7days'}
-                  maxAvailableDate={maxAvailableDate}
-                  sevenDaysAgoFromMaxDate={sevenDaysAgoFromMaxDate}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <VehicleMetrics
-              data={displayData}
-              selectedCampaign={selectedCampaign}
-              periodFilter={periodFilter}
-              filters={filters}
-              vehicleBenchmarks={vehicleBenchmarks}
-              selectedVehicle={selectedVehicle}
-              onSelectVehicle={setSelectedVehicle}
-              selectedPI={selectedPI}
-            />
-          </div>
-
-          <div>
-            <AIAnalysis
-              data={displayData}
-              allData={filteredData}
-              periodFilter={periodFilter}
-              selectedCampaign={selectedCampaign}
-            />
-          </div>
-
-          <div>
-            <OnDemandAnalysis
-              data={displayData}
-              allData={data}
-              periodFilter={periodFilter}
-            />
-          </div>
-
-          <div>
-            <CreativePerformance
-              data={displayData}
-            />
-          </div>
-
-          <div>
-            <CreativeAnalysis
-              data={displayData}
-              periodFilter={periodFilter}
-              selectedCampaign={selectedCampaign}
-            />
-          </div>
-
-          {!loadingSearchTerms && searchTermsData.length > 0 && (
             <div>
-              <SearchTermsAnalysis
-                data={searchTermsData}
-                selectedCampaign={selectedCampaign}
+              <AIAnalysis
+                data={displayData}
+                allData={filteredData}
+                periodFilter={periodFilter}
+                selectedCampaign={null}
+              />
+            </div>
+
+            <div>
+              <OnDemandAnalysis
+                data={displayData}
+                allData={data}
                 periodFilter={periodFilter}
               />
             </div>
-          )}
-        </div>
-      </main>
+
+            <div>
+              <CreativePerformance
+                data={displayData}
+              />
+            </div>
+
+            <div>
+              <CreativeAnalysis
+                data={displayData}
+                periodFilter={periodFilter}
+                selectedCampaign={null}
+              />
+            </div>
+
+            {!loadingSearchTerms && searchTermsData.length > 0 && (
+              <div>
+                <SearchTermsAnalysis
+                  data={searchTermsData}
+                  selectedCampaign={null}
+                  periodFilter={periodFilter}
+                />
+              </div>
+            )}
+          </div>
+        </main>
+
+        <Footer />
       </div>
     </div>
   );
 };
 
 function App() {
+  const pathname = window.location.pathname;
+  const parts = pathname.replace(/^\//, '').split('/').filter(Boolean).map(decodeURIComponent);
+  const campaignSlug = parts[0] || '';
+  const piSlug = parts[1] || '';
+
+  if (campaignSlug && piSlug) {
+    return <PIDashboard campaignSlug={campaignSlug} piSlug={piSlug} />;
+  }
+
+  if (campaignSlug) {
+    return <CampaignDashboard campaignSlug={campaignSlug} />;
+  }
+
   return (
     <CampaignProvider>
       <DashboardContent />

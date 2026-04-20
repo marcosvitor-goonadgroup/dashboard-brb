@@ -13,7 +13,8 @@
       "Bash(taskkill /F /FI \"WINDOWTITLE eq npm run dev\")",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push)"
+      "Bash(git push)",
+      "Bash(npx tsc *)"
     ],
     "deny": [],
     "ask": []

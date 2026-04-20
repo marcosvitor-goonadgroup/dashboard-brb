@@ -15,6 +15,7 @@ interface VehicleMetricsProps {
 
 interface VehicleData {
   veiculo: string;
+  tipoDeCompra: string;
   impressoes: number;
   views: number;
   engajamento: number;
@@ -134,14 +135,16 @@ const VehicleMetrics = ({ data, periodFilter, filters, vehicleBenchmarks, select
 
   const showComparison = hasActiveFilters();
 
-  // Aggregate data by vehicle
+  // Aggregate data by vehicle and purchase type
   const vehicleData = useMemo(() => {
     // Os dados já vêm filtrados do componente pai (displayData)
     // Não precisa aplicar filtros aqui
     let filteredData = data;
 
-    // Aggregate by vehicle
+    // Aggregate by vehicle + tipo de compra (key: "veiculo|tipoDeCompra")
     const vehicleMap = new Map<string, {
+      veiculo: string;
+      tipoDeCompra: string;
       impressoes: number;
       views: number;
       engajamento: number;
@@ -149,35 +152,24 @@ const VehicleMetrics = ({ data, periodFilter, filters, vehicleBenchmarks, select
       videoCompletions: number;
     }>();
 
-    let googleSearchItems = 0;
-    let googleSearchClicksSum = 0;
-
     filteredData.forEach(item => {
       const veiculo = item.veiculo;
+      const tipoDeCompra = item.tipoDeCompra || 'Não especificado';
       if (!veiculo) return;
 
-      if (veiculo === 'Google Search') {
-        googleSearchItems++;
-        googleSearchClicksSum += item.clicks;
-        if (googleSearchItems <= 5) {
-          console.log(`Google Search item ${googleSearchItems}:`, {
-            clicks: item.clicks,
-            impressions: item.impressions,
-            campanha: item.campanha,
-            adName: item.adName
-          });
-        }
-      }
+      const key = `${veiculo}|${tipoDeCompra}`;
 
-      if (vehicleMap.has(veiculo)) {
-        const existing = vehicleMap.get(veiculo)!;
+      if (vehicleMap.has(key)) {
+        const existing = vehicleMap.get(key)!;
         existing.impressoes += item.impressions;
         existing.views += item.videoViews;
         existing.engajamento += item.totalEngagements;
         existing.cliques += item.clicks;
         existing.videoCompletions += item.videoCompletions;
       } else {
-        vehicleMap.set(veiculo, {
+        vehicleMap.set(key, {
+          veiculo,
+          tipoDeCompra,
           impressoes: item.impressions,
           views: item.videoViews,
           engajamento: item.totalEngagements,
@@ -187,23 +179,15 @@ const VehicleMetrics = ({ data, periodFilter, filters, vehicleBenchmarks, select
       }
     });
 
-    if (googleSearchItems > 0) {
-      console.log(`Total de itens Google Search processados: ${googleSearchItems}`);
-      console.log(`Total de clicks somados: ${googleSearchClicksSum}`);
-    }
-
-    // Calculate metrics for each vehicle
-    const vehicles: VehicleData[] = Array.from(vehicleMap.entries()).map(([veiculo, metrics]) => {
+    // Calculate metrics for each vehicle + purchase type combination
+    const vehicles: VehicleData[] = Array.from(vehicleMap.values()).map((metrics) => {
       const ctr = metrics.impressoes > 0 ? (metrics.cliques / metrics.impressoes) * 100 : 0;
       const vtr = metrics.impressoes > 0 ? (metrics.videoCompletions / metrics.impressoes) * 100 : 0;
       const taxaEngajamento = metrics.impressoes > 0 ? (metrics.engajamento / metrics.impressoes) * 100 : 0;
 
-      if (veiculo === 'Google Search') {
-        console.log(`Google Search agregado - Cliques: ${metrics.cliques}, Impressões: ${metrics.impressoes}`);
-      }
-
       return {
-        veiculo,
+        veiculo: metrics.veiculo,
+        tipoDeCompra: metrics.tipoDeCompra,
         impressoes: metrics.impressoes,
         views: metrics.views,
         engajamento: metrics.engajamento,
@@ -214,8 +198,13 @@ const VehicleMetrics = ({ data, periodFilter, filters, vehicleBenchmarks, select
       };
     });
 
-    // Sort by impressions
-    return vehicles.sort((a, b) => b.impressoes - a.impressoes);
+    // Sort by vehicle name first, then by impressions
+    return vehicles.sort((a, b) => {
+      if (a.veiculo !== b.veiculo) {
+        return a.veiculo.localeCompare(b.veiculo);
+      }
+      return b.impressoes - a.impressoes;
+    });
   }, [data]);
 
   if (vehicleData.length === 0) {
@@ -285,20 +274,25 @@ const VehicleMetrics = ({ data, periodFilter, filters, vehicleBenchmarks, select
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white">
-              {vehicleData.map((vehicle) => (
+              {vehicleData.map((vehicle, index) => (
                 <tr
-                  key={vehicle.veiculo}
+                  key={`${vehicle.veiculo}-${vehicle.tipoDeCompra}-${index}`}
                   onClick={() => handleVehicleClick(vehicle.veiculo)}
                   className={`hover:bg-blue-50 transition-colors cursor-pointer ${
                     selectedVehicle === vehicle.veiculo ? 'bg-blue-50 border-l-4 border-blue-600' : ''
                   }`}
                 >
                   <td className="py-3 px-4 border-r border-gray-200">
-                    <div className="flex items-center justify-center gap-3">
+                    <div className="flex items-center justify-center gap-2">
                       <SocialIcon name={vehicle.veiculo} />
-                      <span className="font-medium text-gray-900">
-                        {vehicle.veiculo}
-                      </span>
+                      <div className="flex flex-col items-start">
+                        <span className="font-medium text-gray-900">
+                          {vehicle.veiculo}
+                        </span>
+                        <span className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded mt-1">
+                          {vehicle.tipoDeCompra}
+                        </span>
+                      </div>
                     </div>
                   </td>
                   <td className="py-3 px-4 text-center text-gray-700 font-medium border-r border-gray-200">
