@@ -36,14 +36,14 @@ const ClientCampaignList = ({ data, selectedPI, onSelectPI }: ClientCampaignList
       const allItems = Array.from(pis.values()).flat();
       const impressoes = allItems.reduce((s, i) => s + i.impressions, 0);
       const cliques = allItems.reduce((s, i) => s + i.clicks, 0);
-      const investimento = allItems.reduce((s, i) => s + i.cost, 0);
+      const investimento = allItems.reduce((s, i) => s + (i.realInvestment || i.cost), 0);
       const isActive = allItems.some(i => i.date >= sevenDaysAgo && (i.impressions > 0 || i.clicks > 0) && i.cost > 0);
 
       const piList = Array.from(pis.entries()).map(([pi, items]) => ({
         pi,
         impressoes: items.reduce((s, i) => s + i.impressions, 0),
         cliques: items.reduce((s, i) => s + i.clicks, 0),
-        investimento: items.reduce((s, i) => s + i.cost, 0),
+        investimento: items.reduce((s, i) => s + (i.realInvestment || i.cost), 0),
         veiculos: [...new Set(items.map(i => i.veiculo).filter(Boolean))],
       })).sort((a, b) => b.impressoes - a.impressoes);
 
