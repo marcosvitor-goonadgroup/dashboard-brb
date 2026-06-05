@@ -248,9 +248,10 @@ export const fetchPIInfo = async (numeroPi: string) => {
     const normalizedPi = numeroPi.replace(/^0+/, '');
 
     // Encontra todas as linhas com o número PI especificado
+    // A coluna "Número PI" está no índice 2 (após "Agência" e "Cliente")
     // Compara removendo zeros à esquerda de ambos os lados
     const piRows = values.slice(1).filter((row: string[]) => {
-      const rowPi = (row[0] || '').replace(/^0+/, '');
+      const rowPi = (row[2] || '').replace(/^0+/, '');
       return rowPi === normalizedPi;
     });
 
@@ -260,22 +261,22 @@ export const fetchPIInfo = async (numeroPi: string) => {
 
     // Agrupa informações por veículo
     const piInfo = piRows.map((row: string[]) => ({
-      numeroPi: row[0] || '',
-      veiculo: row[1] || '',
-      canal: row[2] || '',
-      formato: row[3] || '',
-      modeloCompra: row[4] || '',
-      valorNegociado: row[7] || '',
-      quantidade: row[8] || '',
-      totalBruto: row[9] || '',
-      status: row[11] || '',
-      segmentacao: row[12] || '',
-      alcance: row[13] || '',
-      inicio: row[14] || '',
-      fim: row[15] || '',
-      publico: row[16] || '',
-      praca: row[17] || '',
-      objetivo: row[18] || ''
+      numeroPi: row[2] || '',
+      veiculo: row[3] || '',
+      canal: row[4] || '',
+      formato: row[5] || '',
+      modeloCompra: row[6] || '',
+      valorNegociado: row[9] || '',
+      quantidade: row[10] || '',
+      totalBruto: row[11] || '',
+      status: row[13] || '',
+      segmentacao: row[14] || '',
+      alcance: row[15] || '',
+      inicio: row[16] || '',
+      fim: row[17] || '',
+      publico: row[18] || '',
+      praca: row[19] || '',
+      objetivo: row[20] || ''
     }));
 
     return piInfo;

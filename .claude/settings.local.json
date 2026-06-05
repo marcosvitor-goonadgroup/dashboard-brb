@@ -14,7 +14,11 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(curl -s \"https://nmbcoamazonia-api.vercel.app/google/sheets/1T35Pzw9ZA5NOTLHsTqMGZL5IEedpSGdZHJ2ElrqLs1M/data\" -o /tmp/piinfo.json)",
+      "Read(//tmp/**)",
+      "Read(//c/tmp/**)",
+      "Bash(node -e ' *)"
     ],
     "deny": [],
     "ask": []
