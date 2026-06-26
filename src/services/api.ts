@@ -2,7 +2,9 @@ import axios from 'axios';
 import { ApiResponse, ProcessedCampaignData, ProcessedSearchData, PricingTableRow } from '../types/campaign';
 import { parse } from 'date-fns';
 
-const BASE = 'https://nmbcoamazonia-api.vercel.app';
+// Em desenvolvimento, usa o proxy do Vite (/api -> API) para evitar CORS.
+// Em produção, usa a URL absoluta da API diretamente.
+const BASE = import.meta.env.DEV ? '/api' : 'https://nmbcoamazonia-api.vercel.app';
 
 const API_URLS = [
   `${BASE}/google/sheets/1HykUxjCGGdveDS_5vlLOOkAq7Wkl058453xkYGTAzNM/data?range=Consolidado`,

@@ -94,8 +94,20 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
           };
         });
 
+        // PIs com erro de taxonomia que arrastam dados de meses anteriores.
+        // Restringe esses PIs a registros a partir de 01/06/2026 (sem limite final).
+        const PI_JUNHO_2026 = new Set(['23500', '23051']);
+        const inicioJunho2026 = new Date(2026, 5, 1); // mês 5 = junho (0-indexado)
+
+        const dateFilteredCampaignData = correctedCampaignData.filter(item => {
+          if (PI_JUNHO_2026.has(item.numeroPi)) {
+            return item.date >= inicioJunho2026;
+          }
+          return true;
+        });
+
         // Calcula investimento real para cada item
-        const dataWithRealInvestment = correctedCampaignData.map(item => ({
+        const dataWithRealInvestment = dateFilteredCampaignData.map(item => ({
           ...item,
           realInvestment: calculateRealInvestment(item, pricingData)
         }));

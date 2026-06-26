@@ -18,7 +18,10 @@
       "Bash(curl -s \"https://nmbcoamazonia-api.vercel.app/google/sheets/1T35Pzw9ZA5NOTLHsTqMGZL5IEedpSGdZHJ2ElrqLs1M/data\" -o /tmp/piinfo.json)",
       "Read(//tmp/**)",
       "Read(//c/tmp/**)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(ls vercel.json netlify.toml)",
+      "Bash(cat vercel.json)"
     ],
     "deny": [],
     "ask": []
